@@ -1,27 +1,25 @@
 workflows:
-android-apk:
-name: M13 Club Android APK
-max_build_duration: 120
-instance_type: linux_x2
+  android-apk:
+    name: M13 Club Android APK
+    max_build_duration: 120
+    instance_type: linux_x2
 
-```
-environment:
-  node: 22.17.0
+    environment:
+      node: 22.17.0
 
-scripts:
-  - name: Install dependencies
-    script: |
-      npm ci
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
 
-  - name: Set Android SDK location
-    script: |
-      echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
 
-  - name: Build release APK
-    script: |
-      cd android
-      ./gradlew assembleRelease
+      - name: Build release APK
+        script: |
+          cd android
+          ./gradlew assembleRelease
 
-artifacts:
-  - android/app/build/outputs/apk/release/*.apk
-```
+    artifacts:
+      - android/app/build/outputs/apk/release/*.apk
