@@ -17,5 +17,12 @@ workflows:
           cd android
           ./gradlew assembleRelease
 
+      - name: Inspect APK outputs
+        script: |
+          echo "=== APK OUTPUTS ==="
+          find android/app/build/outputs/apk -type f -name "*.apk" -print
+          echo "=== RELEASE DIRECTORY ==="
+          ls -lah android/app/build/outputs/apk/release/ || true
+
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
