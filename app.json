@@ -1,15 +1,19 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
-    "version": "1.0.0",
+    "name": "M13 Club",
+    "slug": "m13-club",
+    "version": "1.5.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.millennium.m13club",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "web": {
       "bundler": "metro",
@@ -27,9 +31,16 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e017bc50-484d-4ccc-8d78-5c001075dc02"
+        "projectId": "06e12024-597e-4f7f-9532-0381e260af87"
       }
     },
-    "owner": "albopilo"
+    "owner": "albopilo",
+    "android": {
+  "package": "com.millennium.m13club",
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/images/adaptive-icon.png",
+    "backgroundColor": "#111827"
+  }
+}
   }
 }

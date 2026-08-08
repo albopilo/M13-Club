@@ -28,6 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
@@ -53,6 +54,8 @@ export default function ProfileScreen() {
     emergency_contact_name: member?.emergency_contact_name || '',
     emergency_contact_phone: member?.emergency_contact_phone || '',
   });
+
+  const insets = useSafeAreaInsets();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -99,7 +102,9 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={{
+    paddingBottom: 140 + insets.bottom,
+}}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
@@ -227,7 +232,6 @@ function EditField({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.neutral[50] },
-  content: { paddingBottom: Spacing.xxxl },
   profileHeader: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
@@ -373,18 +377,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.neutral[900],
   },
-  signOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginHorizontal: Spacing.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.error[300],
-    borderRadius: BorderRadius.md,
-    height: 52,
-    backgroundColor: Colors.error[50],
-  },
+signOutButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+
+  gap: 8,
+
+  marginHorizontal: Spacing.lg,
+  marginTop: Spacing.lg,
+  marginBottom: 40, // some breathing room
+
+  borderWidth: 1.5,
+  borderColor: Colors.error[300],
+  borderRadius: BorderRadius.md,
+
+  height: 52,
+
+  backgroundColor: Colors.error[50],
+},
   signOutText: {
     fontFamily: FontFamily.semibold,
     fontSize: 15,

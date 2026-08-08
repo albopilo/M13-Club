@@ -85,10 +85,10 @@ export default function HomeScreen() {
           <View style={styles.heroDivider} />
           <TouchableOpacity
             style={styles.heroAction}
-            onPress={() => router.push('/(tabs)/bookings')}
+            onPress={() => router.push('/(tabs)/payment')}
           >
             <Calendar size={18} color={Colors.neutral[0]} strokeWidth={2} />
-            <Text style={styles.heroActionText}>Book</Text>
+            <Text style={styles.heroActionText}>Pay</Text>
           </TouchableOpacity>
           <View style={styles.heroDivider} />
           <TouchableOpacity
@@ -106,14 +106,14 @@ export default function HomeScreen() {
         <View style={styles.quickGrid}>
           <TouchableOpacity
             style={styles.quickCard}
-            onPress={() => router.push('/(tabs)/bookings')}
+            onPress={() => router.push('/(tabs)/payment')}
             activeOpacity={0.85}
           >
             <View style={[styles.quickIcon, { backgroundColor: Colors.primary[50] }]}>
               <Calendar size={24} color={Colors.primary[700]} strokeWidth={2} />
             </View>
-            <Text style={styles.quickTitle}>Book a Room</Text>
-            <Text style={styles.quickSubtitle}>Browse & reserve</Text>
+            <Text style={styles.quickTitle}>Payment</Text>
+            <Text style={styles.quickSubtitle}>Make a Payment</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,14 +16,34 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontFamily, BorderRadius, Shadows } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+import { supabase } from "@/lib/supabase";
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+const {
+  signIn,
+  session,
+  user,
+  member,
+  loading: authLoading,
+  validateCurrentUser,
+} = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+
+useEffect(() => {
+  if (authLoading) return;
+
+  if (session && member?.status === "active") {
+    router.replace("/(tabs)");
+  }
+}, [session, member, authLoading]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -36,12 +56,91 @@ export default function LoginScreen() {
     const { error } = await signIn(email.trim(), password);
     setLoading(false);
 
-    if (error) {
-      setError(error);
-    } else {
-      router.replace('/(tabs)');
-    }
+if (error) {
+  setError(error);
+}
   };
+
+const signInWithGoogle = async () => {
+  try {
+    const redirectTo = Linking.createURL("auth/callback");
+
+    console.log("Redirect URL:", redirectTo);
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+
+    if (error) {
+      Alert.alert(error.message);
+      return;
+    }
+
+    if (!data?.url) {
+      Alert.alert("No OAuth URL returned.");
+      return;
+    }
+
+    const result = await WebBrowser.openAuthSessionAsync(
+      data.url,
+      redirectTo
+    );
+
+    console.log("Browser Result:", result);
+
+    if (result.type !== "success") {
+      return;
+    }
+
+    const hash = result.url.split("#")[1];
+
+    if (!hash) {
+      Alert.alert("No tokens returned from Google.");
+      return;
+    }
+
+    const params = new URLSearchParams(hash);
+
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+
+    if (!access_token || !refresh_token) {
+      Alert.alert("Missing access token.");
+      return;
+    }
+
+const {
+  data: sessionData,
+  error: sessionError,
+} = await supabase.auth.setSession({
+  access_token,
+  refresh_token,
+});
+
+if (sessionError) {
+  Alert.alert(sessionError.message);
+  return;
+}
+
+const validation = await validateCurrentUser();
+
+if (validation.error) {
+  setError(validation.error);
+  return;
+}
+
+router.replace("/(tabs)");
+
+
+} catch (e) {
+  console.error("Google Exception:", e);
+  Alert.alert("Google Login Error", JSON.stringify(e));
+}
+};
 
   return (
     <LinearGradient
@@ -127,6 +226,15 @@ export default function LoginScreen() {
                 </>
               )}
             </TouchableOpacity>
+
+            <TouchableOpacity
+    style={styles.googleButton}
+    onPress={signInWithGoogle}
+>
+    <Text style={styles.googleText}>
+        Continue with Google
+    </Text>
+</TouchableOpacity>
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
@@ -263,4 +371,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.primary[700],
   },
+  googleButton: {
+    marginTop:16,
+    backgroundColor:"#ffffff",
+    borderWidth:1,
+    borderColor:"#ddd",
+    padding:15,
+    borderRadius:10,
+    alignItems:"center",
+},
+
+googleText:{
+    fontWeight:"600",
+    color:"#222",
+},
 });

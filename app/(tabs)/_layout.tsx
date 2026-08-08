@@ -5,10 +5,13 @@ import { Home, Wallet, Ticket, CreditCard, User as UserIcon, Shield, Receipt } f
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontFamily } from '@/constants/theme';
 import { isAdminRole, isStaffRole } from '@/lib/supabase';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ShoppingCart } from 'lucide-react-native';
 
 export default function TabLayout() {
   const { user, member, loading } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -32,14 +35,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: Colors.neutral[0],
-          borderTopWidth: 1,
-          borderTopColor: Colors.neutral[200],
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
+tabBarStyle: {
+  position: "absolute",
+  backgroundColor: Colors.neutral[0],
+  borderTopWidth: 1,
+  borderTopColor: Colors.neutral[200],
+
+  height: 80 + insets.bottom,
+  paddingBottom: Math.max(insets.bottom, 10),
+  paddingTop: 8,
+},
         tabBarActiveTintColor: Colors.primary[700],
         tabBarInactiveTintColor: Colors.neutral[400],
         tabBarLabelStyle: {
@@ -81,6 +86,20 @@ export default function TabLayout() {
           href: isStaff ? null : undefined,
         }}
       />
+      <Tabs.Screen
+  name="sales"
+  options={{
+    title: "Sales",
+    tabBarIcon: ({ size, color }) => (
+      <ShoppingCart
+        size={size}
+        color={color}
+        strokeWidth={2}
+      />
+    ),
+    href: (isStaff || isAdmin) ? undefined : null,
+  }}
+/>
       <Tabs.Screen
         name="payment-logs"
         options={{

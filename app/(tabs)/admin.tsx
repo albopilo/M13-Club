@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { isAdminRole } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Stats {
   total_members: number;
@@ -30,18 +31,31 @@ interface Stats {
 }
 
 export default function AdminScreen() {
+  const insets = useSafeAreaInsets();
   const { member } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = useCallback(async () => {
-    const { data, error } = await supabase.rpc('get_dashboard_stats');
-    if (!error && data) {
-      setStats(data as Stats);
-    }
+  setLoading(true);
+
+  const { data, error } = await supabase.rpc("get_dashboard_stats");
+
+  if (error) {
+    console.error("Dashboard RPC Error:", error);
     setLoading(false);
-  }, []);
+    return;
+  }
+
+  console.log("Dashboard Stats:", data);
+
+  if (data) {
+    setStats(data as Stats);
+  }
+
+  setLoading(false);
+}, []);
 
   useFocusEffect(useCallback(() => { fetchStats(); }, [fetchStats]));
 
@@ -72,7 +86,9 @@ export default function AdminScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={{
+    paddingBottom: 140 + insets.bottom,
+}}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
