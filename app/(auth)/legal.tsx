@@ -53,13 +53,13 @@ export default function LegalAcceptanceScreen() {
     router.replace("/(tabs)");
   };
 
-  const openTerms = () => {
-    router.push("/(auth)/terms");
-  };
+const openTerms = () => {
+  router.push("./terms");
+};
 
-  const openPrivacy = () => {
-    router.push("/(auth)/privacy");
-  };
+const openPrivacy = () => {
+  router.push("./privacy");
+};
 
   return (
     <LinearGradient
