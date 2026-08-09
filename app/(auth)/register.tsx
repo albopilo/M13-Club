@@ -92,7 +92,7 @@ export default function RegisterScreen() {
        * legal acceptance flow so that the acceptance is tied to
        * the actual Supabase user ID.
        */
-      router.replace('/(auth)/legal');
+      router.replace("./legal");
     } catch (e) {
       console.error('Registration error:', e);
 
@@ -105,11 +105,11 @@ export default function RegisterScreen() {
   };
 
   const openTerms = () => {
-    router.push('//terms');
+    router.push("./terms");
   };
 
   const openPrivacy = () => {
-    router.push('//privacy');
+    router.push("./privacy");
   };
 
   return (
