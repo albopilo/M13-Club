@@ -54,11 +54,11 @@ export default function LegalAcceptanceScreen() {
   };
 
   const openTerms = () => {
-    router.push("//terms");
+    router.push("/(auth)/terms");
   };
 
   const openPrivacy = () => {
-    router.push("//privacy");
+    router.push("/(auth)/privacy");
   };
 
   return (

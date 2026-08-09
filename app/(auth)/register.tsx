@@ -92,7 +92,7 @@ export default function RegisterScreen() {
        * legal acceptance flow so that the acceptance is tied to
        * the actual Supabase user ID.
        */
-      router.replace('//legal');
+      router.replace('/(auth)/legal');
     } catch (e) {
       console.error('Registration error:', e);
 
