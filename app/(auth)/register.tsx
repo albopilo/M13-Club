@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   View,
   Text,
@@ -9,8 +9,10 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-} from 'react-native';
-import { Link, router } from 'expo-router';
+} from "react-native";
+
+import { Link, router } from "expo-router";
+
 import {
   Mail,
   Lock,
@@ -21,24 +23,27 @@ import {
   Phone,
   Check,
   ExternalLink,
-} from 'lucide-react-native';
-import { useAuth } from '@/context/AuthContext';
+} from "lucide-react-native";
+
+import { useAuth } from "@/context/AuthContext";
+
 import {
   Colors,
   FontFamily,
   BorderRadius,
   Shadows,
-} from '@/constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+} from "@/constants/theme";
+
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -49,23 +54,23 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!fullName.trim() || !email.trim() || !password) {
-      setError('Please fill in all required fields.');
+      setError("Please fill in all required fields.");
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       return;
     }
 
     if (!acceptedLegal) {
       setError(
-        'Please agree to the M13 Club Terms & Conditions and Privacy Policy.'
+        "Please agree to the M13 Club Terms & Conditions and Privacy Policy."
       );
       return;
     }
@@ -88,16 +93,18 @@ export default function RegisterScreen() {
       /*
        * The account has been created successfully.
        *
-       * Legal acceptance will be handled by the authenticated
-       * legal acceptance flow so that the acceptance is tied to
-       * the actual Supabase user ID.
+       * Legal acceptance is intentionally handled by the
+       * authenticated legal acceptance screen so that the
+       * acceptance is tied to the actual Supabase user ID.
        */
       router.replace("./legal");
     } catch (e) {
-      console.error('Registration error:', e);
+      console.error("Registration error:", e);
 
       setError(
-        'An unexpected error occurred while creating your account. Please try again.'
+        e instanceof Error
+          ? e.message
+          : "An unexpected error occurred while creating your account. Please try again."
       );
     } finally {
       setLoading(false);
@@ -122,7 +129,9 @@ export default function RegisterScreen() {
       style={styles.gradient}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'web' ? undefined : 'padding'}
+        behavior={
+          Platform.OS === "web" ? undefined : "padding"
+        }
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -134,7 +143,9 @@ export default function RegisterScreen() {
               <Text style={styles.logoText}>M13</Text>
             </View>
 
-            <Text style={styles.title}>Join M13 Club</Text>
+            <Text style={styles.title}>
+              Join M13 Club
+            </Text>
 
             <Text style={styles.subtitle}>
               Create your membership account
@@ -144,12 +155,16 @@ export default function RegisterScreen() {
           <View style={styles.formContainer}>
             {error && (
               <View style={styles.errorBanner}>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text style={styles.errorText}>
+                  {error}
+                </Text>
               </View>
             )}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name *</Text>
+              <Text style={styles.label}>
+                Full Name *
+              </Text>
 
               <View style={styles.inputWrapper}>
                 <User
@@ -167,12 +182,15 @@ export default function RegisterScreen() {
                   textContentType="name"
                   autoCapitalize="words"
                   autoCorrect={false}
+                  editable={!loading}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address *</Text>
+              <Text style={styles.label}>
+                Email Address *
+              </Text>
 
               <View style={styles.inputWrapper}>
                 <Mail
@@ -191,12 +209,15 @@ export default function RegisterScreen() {
                   autoCorrect={false}
                   keyboardType="email-address"
                   textContentType="emailAddress"
+                  editable={!loading}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number</Text>
+              <Text style={styles.label}>
+                Phone Number
+              </Text>
 
               <View style={styles.inputWrapper}>
                 <Phone
@@ -213,12 +234,15 @@ export default function RegisterScreen() {
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
                   textContentType="telephoneNumber"
+                  editable={!loading}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password *</Text>
+              <Text style={styles.label}>
+                Password *
+              </Text>
 
               <View style={styles.inputWrapper}>
                 <Lock
@@ -237,13 +261,21 @@ export default function RegisterScreen() {
                   textContentType="newPassword"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!loading}
                 />
 
                 <TouchableOpacity
                   onPress={() =>
-                    setShowPassword(!showPassword)
+                    setShowPassword((current) => !current)
                   }
                   activeOpacity={0.7}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
                 >
                   {showPassword ? (
                     <EyeOff
@@ -284,11 +316,11 @@ export default function RegisterScreen() {
                   textContentType="newPassword"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!loading}
                 />
               </View>
             </View>
 
-            {/* Legal acceptance */}
             <View style={styles.legalContainer}>
               <Text style={styles.legalHeading}>
                 Legal Agreement
@@ -296,14 +328,17 @@ export default function RegisterScreen() {
 
               <Text style={styles.legalDescription}>
                 Before creating your account, please review
-                and agree to the M13 Club Terms & Conditions and
-                Privacy Policy.
+                and agree to the M13 Club Terms & Conditions
+                and Privacy Policy.
               </Text>
 
               <TouchableOpacity
                 style={styles.documentButton}
                 onPress={openTerms}
                 activeOpacity={0.8}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Open M13 Club Terms and Conditions"
               >
                 <View style={styles.documentTextContainer}>
                   <Text style={styles.documentTitle}>
@@ -327,6 +362,9 @@ export default function RegisterScreen() {
                 style={styles.documentButton}
                 onPress={openPrivacy}
                 activeOpacity={0.8}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Open M13 Club Privacy Policy"
               >
                 <View style={styles.documentTextContainer}>
                   <Text style={styles.documentTitle}>
@@ -334,8 +372,8 @@ export default function RegisterScreen() {
                   </Text>
 
                   <Text style={styles.documentSubtitle}>
-                    How M13 collects, uses, stores, and protects
-                    your personal information.
+                    How M13 collects, uses, stores, and
+                    protects your personal information.
                   </Text>
                 </View>
 
@@ -349,13 +387,17 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 style={styles.checkboxRow}
                 onPress={() => {
-                  setAcceptedLegal(!acceptedLegal);
+                  setAcceptedLegal(
+                    (current) => !current
+                  );
                   setError(null);
                 }}
                 activeOpacity={0.8}
+                disabled={loading}
                 accessibilityRole="checkbox"
                 accessibilityState={{
                   checked: acceptedLegal,
+                  disabled: loading,
                 }}
               >
                 <View
@@ -375,8 +417,8 @@ export default function RegisterScreen() {
                 </View>
 
                 <Text style={styles.checkboxText}>
-                  I have read and agree to the M13 Club Terms &
-                  Conditions and acknowledge the M13 Club
+                  I have read and agree to the M13 Club Terms
+                  & Conditions and acknowledge the M13 Club
                   Privacy Policy.
                 </Text>
               </TouchableOpacity>
@@ -391,6 +433,11 @@ export default function RegisterScreen() {
               onPress={handleRegister}
               disabled={loading || !acceptedLegal}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled:
+                  loading || !acceptedLegal,
+              }}
             >
               {loading ? (
                 <ActivityIndicator
@@ -413,7 +460,7 @@ export default function RegisterScreen() {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>
-                Already a member?{' '}
+                Already a member?{" "}
               </Text>
 
               <Link
@@ -439,13 +486,13 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 24,
-    minHeight: '100%',
+    minHeight: "100%",
   },
 
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 32,
   },
 
@@ -454,8 +501,8 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: BorderRadius.xl,
     backgroundColor: Colors.neutral[0],
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 24,
     ...Shadows.lg,
   },
@@ -485,8 +532,8 @@ const styles = StyleSheet.create({
     padding: 28,
     ...Shadows.lg,
     maxWidth: 480,
-    width: '100%',
-    alignSelf: 'center',
+    width: "100%",
+    alignSelf: "center",
   },
 
   errorBanner: {
@@ -502,6 +549,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     fontSize: 14,
     color: Colors.error[700],
+    lineHeight: 20,
   },
 
   inputGroup: {
@@ -516,8 +564,8 @@ const styles = StyleSheet.create({
   },
 
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1.5,
     borderColor: Colors.neutral[200],
     borderRadius: BorderRadius.md,
@@ -554,8 +602,8 @@ const styles = StyleSheet.create({
   },
 
   documentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.neutral[200],
     borderRadius: BorderRadius.md,
@@ -583,8 +631,8 @@ const styles = StyleSheet.create({
   },
 
   checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginTop: 8,
     marginBottom: 18,
   },
@@ -595,8 +643,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 2,
     borderColor: Colors.neutral[300],
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
     marginTop: 1,
   },
@@ -615,9 +663,9 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     backgroundColor: Colors.primary[700],
     borderRadius: BorderRadius.md,
@@ -637,9 +685,9 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 24,
   },
 

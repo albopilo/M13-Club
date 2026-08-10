@@ -2,13 +2,21 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
 
-import { Session, User } from "@supabase/supabase-js";
+import {
+  Session,
+  User,
+  AuthChangeEvent,
+} from "@supabase/supabase-js";
 
-import { supabase, Member } from "@/lib/supabase";
+import {
+  supabase,
+  Member,
+} from "@/lib/supabase";
 
 import {
   hasAcceptedCurrentTerms,
@@ -26,7 +34,7 @@ interface AuthContextType {
    * Privacy Policy versions.
    *
    * null means the acceptance status has not
-   * been checked yet.
+   * been successfully checked yet.
    */
   termsAccepted: boolean | null;
 
@@ -34,17 +42,26 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<{
+    error: string | null;
+  }>;
 
   signIn: (
     email: string,
     password: string
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<{
+    error: string | null;
+  }>;
 
   signOut: () => Promise<void>;
 
   refreshMember: () => Promise<void>;
 
+  /**
+   * Explicitly validates the currently authenticated
+   * Supabase user, member record, member status,
+   * and current legal acceptance.
+   */
   validateCurrentUser: () => Promise<{
     error: string | null;
   }>;
@@ -59,35 +76,35 @@ interface AuthContextType {
   }>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  member: null,
-  loading: true,
+const AuthContext =
+  createContext<AuthContextType>({
+    session: null,
+    user: null,
+    member: null,
+    loading: true,
+    termsAccepted: null,
 
-  termsAccepted: null,
+    signUp: async () => ({
+      error: null,
+    }),
 
-  signUp: async () => ({
-    error: null,
-  }),
+    signIn: async () => ({
+      error: null,
+    }),
 
-  signIn: async () => ({
-    error: null,
-  }),
+    signOut: async () => {},
 
-  signOut: async () => {},
+    refreshMember: async () => {},
 
-  refreshMember: async () => {},
+    validateCurrentUser: async () => ({
+      error: null,
+    }),
 
-  validateCurrentUser: async () => ({
-    error: null,
-  }),
-
-  refreshTermsAcceptance: async () => ({
-    accepted: false,
-    error: null,
-  }),
-});
+    refreshTermsAcceptance: async () => ({
+      accepted: false,
+      error: null,
+    }),
+  });
 
 export function AuthProvider({
   children,
@@ -108,6 +125,20 @@ export function AuthProvider({
 
   const [termsAccepted, setTermsAccepted] =
     useState<boolean | null>(null);
+
+  /**
+   * Prevent stale asynchronous authentication
+   * operations from overwriting newer state.
+   */
+  const syncRequestRef =
+    useRef(0);
+
+  /**
+   * Prevent state updates after the provider
+   * has been unmounted.
+   */
+  const mountedRef =
+    useRef(true);
 
   /**
    * Validate member status.
@@ -137,6 +168,14 @@ export function AuthProvider({
   /**
    * Check whether the current user has accepted
    * the currently active legal document versions.
+   *
+   * IMPORTANT:
+   *
+   * This continues to use the existing
+   * hasAcceptedCurrentTerms() implementation.
+   *
+   * We are NOT changing legal_consents,
+   * RLS, or the existing terms helper here.
    */
   const checkTermsAcceptance = async (
     userId: string
@@ -145,10 +184,34 @@ export function AuthProvider({
     error: string | null;
   }> => {
     try {
-      const accepted =
-        await hasAcceptedCurrentTerms(userId);
+      console.log(
+        "========== TERMS CHECK =========="
+      );
 
-      setTermsAccepted(accepted);
+      console.log(
+        "Terms user ID:",
+        userId
+      );
+
+      const accepted =
+        await hasAcceptedCurrentTerms(
+          userId
+        );
+
+      console.log(
+        "Terms accepted result:",
+        accepted
+      );
+
+      console.log(
+        "================================"
+      );
+
+      if (mountedRef.current) {
+        setTermsAccepted(
+          accepted
+        );
+      }
 
       return {
         accepted,
@@ -160,7 +223,17 @@ export function AuthProvider({
         e
       );
 
-      setTermsAccepted(null);
+      if (mountedRef.current) {
+        /**
+         * IMPORTANT:
+         *
+         * A failed query is NOT the same thing
+         * as "not accepted".
+         *
+         * Therefore use null, not false.
+         */
+        setTermsAccepted(null);
+      }
 
       return {
         accepted: false,
@@ -170,49 +243,6 @@ export function AuthProvider({
             : "Unable to verify Terms & Conditions acceptance.",
       };
     }
-  };
-
-  /**
-   * Public method for re-checking legal acceptance.
-   *
-   * This is useful immediately after the user accepts
-   * the Terms & Conditions and Privacy Policy.
-   */
-  const refreshTermsAcceptance = async (): Promise<{
-    accepted: boolean;
-    error: string | null;
-  }> => {
-    const {
-      data: { user: currentUser },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error) {
-      console.error(
-        "Unable to retrieve current user:",
-        error
-      );
-
-      setTermsAccepted(null);
-
-      return {
-        accepted: false,
-        error: error.message,
-      };
-    }
-
-    if (!currentUser) {
-      setTermsAccepted(false);
-
-      return {
-        accepted: false,
-        error: "Unable to retrieve account information.",
-      };
-    }
-
-    return checkTermsAcceptance(
-      currentUser.id
-    );
   };
 
   /**
@@ -241,7 +271,9 @@ export function AuthProvider({
         error
       );
 
-      setMember(null);
+      if (mountedRef.current) {
+        setMember(null);
+      }
 
       return null;
     }
@@ -251,7 +283,9 @@ export function AuthProvider({
         "No member record found"
       );
 
-      setMember(null);
+      if (mountedRef.current) {
+        setMember(null);
+      }
 
       return null;
     }
@@ -264,44 +298,107 @@ export function AuthProvider({
     const memberRecord =
       data as Member;
 
-    setMember(memberRecord);
+    if (mountedRef.current) {
+      setMember(
+        memberRecord
+      );
+    }
 
     return memberRecord;
   };
 
   /**
-   * Validate currently authenticated user.
+   * Synchronize all authenticated application state.
    *
-   * This is used after Google OAuth and can also be
-   * used whenever we need to re-check account status.
+   * This function performs Supabase queries OUTSIDE
+   * the onAuthStateChange callback.
+   *
+   * That is intentional.
    */
-  const validateCurrentUser =
-    async (): Promise<{
+  const synchronizeAuthenticatedState =
+    async (
+      currentSession: Session | null
+    ): Promise<{
       error: string | null;
     }> => {
-      const {
-        data: {
-          user: currentUser,
-        },
-      } = await supabase.auth.getUser();
+      const requestId =
+        ++syncRequestRef.current;
 
-      if (!currentUser) {
-        setSession(null);
-        setUser(null);
-        setMember(null);
-        setTermsAccepted(false);
+      /**
+       * No authenticated session.
+       */
+      if (
+        !currentSession ||
+        !currentSession.user
+      ) {
+        if (
+          mountedRef.current &&
+          requestId ===
+            syncRequestRef.current
+        ) {
+          setSession(null);
+          setUser(null);
+          setMember(null);
+          setTermsAccepted(false);
+          setLoading(false);
+        }
 
         return {
-          error:
-            "Unable to retrieve account information.",
+          error: null,
         };
       }
 
+      const currentUser =
+        currentSession.user;
+
+      /**
+       * Make the authenticated state visible immediately.
+       *
+       * The member and legal checks happen below.
+       */
+      if (
+        mountedRef.current &&
+        requestId ===
+          syncRequestRef.current
+      ) {
+        setSession(
+          currentSession
+        );
+
+        setUser(
+          currentUser
+        );
+
+        /**
+         * We don't yet know the legal state.
+         */
+        setTermsAccepted(null);
+      }
+
+      /**
+       * Fetch M13 member.
+       */
       const memberRecord =
         await fetchMember(
           currentUser.id
         );
 
+      /**
+       * Ignore stale result.
+       */
+      if (
+        !mountedRef.current ||
+        requestId !==
+          syncRequestRef.current
+      ) {
+        return {
+          error: null,
+        };
+      }
+
+      /**
+       * Validate member.
+       */
       const statusError =
         validateMemberStatus(
           memberRecord
@@ -313,274 +410,318 @@ export function AuthProvider({
           statusError
         );
 
+        /**
+         * The session exists in Supabase,
+         * but the M13 member account is not valid.
+         *
+         * Sign out to prevent access.
+         */
         await supabase.auth.signOut();
 
-        setSession(null);
-        setUser(null);
-        setMember(null);
-        setTermsAccepted(false);
+        if (
+          mountedRef.current &&
+          requestId ===
+            syncRequestRef.current
+        ) {
+          setSession(null);
+          setUser(null);
+          setMember(null);
+          setTermsAccepted(false);
+          setLoading(false);
+        }
 
         return {
           error: statusError,
         };
       }
 
-      const {
-        data: {
-          session: currentSession,
-        },
-      } = await supabase.auth.getSession();
+      /**
+       * Store valid member.
+       */
+      setMember(
+        memberRecord
+      );
 
-      setSession(currentSession);
-      setUser(currentUser);
-      setMember(memberRecord);
-
+      /**
+       * Check current Terms/Privacy acceptance.
+       */
       const termsResult =
         await checkTermsAcceptance(
           currentUser.id
         );
 
-      if (termsResult.error) {
+      /**
+       * Ignore stale result.
+       */
+      if (
+        !mountedRef.current ||
+        requestId !==
+          syncRequestRef.current
+      ) {
         return {
-          error:
-            "Unable to verify legal acceptance.",
+          error: null,
         };
       }
 
+      /**
+       * A legal-query failure is an error,
+       * but it is NOT an authentication failure.
+       */
+      if (termsResult.error) {
+        console.error(
+          "Legal acceptance verification failed:",
+          termsResult.error
+        );
+
+        setTermsAccepted(null);
+      }
+
+      setLoading(false);
+
       return {
-        error: null,
+        error:
+          termsResult.error
+            ? "Unable to verify legal acceptance."
+            : null,
       };
     };
 
   /**
-   * Initial authentication state.
+   * Public method for re-checking legal acceptance.
    */
-  useEffect(() => {
-    let mounted = true;
+  const refreshTermsAcceptance =
+    async (): Promise<{
+      accepted: boolean;
+      error: string | null;
+    }> => {
+      const {
+        data: {
+          user: currentUser,
+        },
+        error,
+      } =
+        await supabase.auth.getUser();
 
-    const initialize = async () => {
-      try {
-        setLoading(true);
-
-        const {
-          data: {
-            session,
-          },
-        } =
-          await supabase.auth.getSession();
-
-        console.log(
-          "Initial Session:",
-          session
-        );
-
-        if (!mounted) {
-          return;
-        }
-
-        if (!session?.user) {
-          setSession(null);
-          setUser(null);
-          setMember(null);
-          setTermsAccepted(false);
-
-          return;
-        }
-
-        const memberRecord =
-          await fetchMember(
-            session.user.id
-          );
-
-        if (!mounted) {
-          return;
-        }
-
-        const statusError =
-          validateMemberStatus(
-            memberRecord
-          );
-
-        if (statusError) {
-          console.log(
-            "Stored session rejected:",
-            statusError
-          );
-
-          await supabase.auth.signOut();
-
-          if (!mounted) {
-            return;
-          }
-
-          setSession(null);
-          setUser(null);
-          setMember(null);
-          setTermsAccepted(false);
-
-          return;
-        }
-
-        if (!mounted) {
-          return;
-        }
-
-        setSession(session);
-        setUser(session.user);
-        setMember(memberRecord);
-
-        /**
-         * Check legal acceptance separately
-         * from authentication.
-         */
-        const termsResult =
-          await checkTermsAcceptance(
-            session.user.id
-          );
-
-        if (!mounted) {
-          return;
-        }
-
-        if (termsResult.error) {
-          console.error(
-            "Initial terms acceptance check failed:",
-            termsResult.error
-          );
-
-          /**
-           * Keep the authenticated session.
-           *
-           * The UI can decide whether to retry the
-           * legal check instead of incorrectly assuming
-           * that the user accepted the documents.
-           */
-          setTermsAccepted(null);
-        }
-      } catch (e) {
+      if (error) {
         console.error(
-          "Authentication initialization error:",
-          e
+          "Unable to retrieve current user:",
+          error
         );
 
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          setMember(null);
+        if (
+          mountedRef.current
+        ) {
           setTermsAccepted(null);
         }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+
+        return {
+          accepted: false,
+          error: error.message,
+        };
       }
+
+      if (!currentUser) {
+        if (
+          mountedRef.current
+        ) {
+          setTermsAccepted(
+            false
+          );
+        }
+
+        return {
+          accepted: false,
+          error:
+            "Unable to retrieve account information.",
+        };
+      }
+
+      return checkTermsAcceptance(
+        currentUser.id
+      );
     };
 
-    initialize();
+  /**
+   * Explicitly validate the current authenticated user.
+   *
+   * Used after native Google OAuth establishes a session.
+   */
+  const validateCurrentUser =
+    async (): Promise<{
+      error: string | null;
+    }> => {
+      const {
+        data: {
+          session:
+            currentSession,
+        },
+        error: sessionError,
+      } =
+        await supabase.auth.getSession();
 
-    /**
-     * Listen for authentication events.
-     */
+      if (sessionError) {
+        console.error(
+          "Unable to retrieve current session:",
+          sessionError
+        );
+
+        return {
+          error:
+            sessionError.message,
+        };
+      }
+
+      if (
+        !currentSession?.user
+      ) {
+        if (
+          mountedRef.current
+        ) {
+          setSession(null);
+          setUser(null);
+          setMember(null);
+          setTermsAccepted(false);
+        }
+
+        return {
+          error:
+            "Unable to retrieve account information.",
+        };
+      }
+
+      return synchronizeAuthenticatedState(
+        currentSession
+      );
+    };
+
+  /**
+   * Initial authentication state and
+   * authentication event listener.
+   *
+   * IMPORTANT:
+   *
+   * The auth callback itself stays synchronous.
+   *
+   * We do NOT perform Supabase database/auth
+   * queries directly inside onAuthStateChange.
+   */
+  useEffect(() => {
+    mountedRef.current = true;
+
     const {
       data: {
         subscription,
       },
     } =
       supabase.auth.onAuthStateChange(
-        async (
-          _event,
-          session
+        (
+          event: AuthChangeEvent,
+          currentSession
         ) => {
           console.log(
             "AUTH EVENT:",
-            _event
+            event
           );
 
           console.log(
             "AUTH SESSION:",
-            session
+            currentSession
           );
 
-          if (!session?.user) {
-            setSession(null);
-            setUser(null);
-            setMember(null);
-            setTermsAccepted(false);
-            setLoading(false);
-
-            return;
-          }
-
-          /*
-           * Important:
-           *
-           * Do NOT automatically trust the session.
-           * Check the member status first.
+          /**
+           * Signed out is handled immediately.
            */
-          const memberRecord =
-            await fetchMember(
-              session.user.id
-            );
+          if (
+            event ===
+            "SIGNED_OUT"
+          ) {
+            ++syncRequestRef.current;
 
-          const statusError =
-            validateMemberStatus(
-              memberRecord
-            );
-
-          if (statusError) {
-            console.log(
-              "Auth event rejected:",
-              statusError
-            );
-
-            await supabase.auth.signOut();
-
-            setSession(null);
-            setUser(null);
-            setMember(null);
-            setTermsAccepted(false);
-            setLoading(false);
+            if (
+              mountedRef.current
+            ) {
+              setSession(null);
+              setUser(null);
+              setMember(null);
+              setTermsAccepted(false);
+              setLoading(false);
+            }
 
             return;
           }
-
-          setSession(session);
-          setUser(session.user);
-          setMember(memberRecord);
 
           /**
-           * Authentication and legal acceptance
-           * are intentionally separate.
+           * Update session/user immediately.
            *
-           * A valid authenticated user may still need
-           * to accept the current legal version.
+           * Do NOT perform Supabase queries here.
            */
-          const termsResult =
-            await checkTermsAcceptance(
-              session.user.id
+          if (
+            mountedRef.current
+          ) {
+            setSession(
+              currentSession
             );
 
-          if (termsResult.error) {
-            console.error(
-              "Auth event terms check failed:",
-              termsResult.error
+            setUser(
+              currentSession?.user ??
+                null
             );
 
-            setTermsAccepted(null);
+            /**
+             * While the authenticated state is being
+             * synchronized, legal status is unknown.
+             */
+            if (
+              currentSession?.user
+            ) {
+              setTermsAccepted(
+                null
+              );
+            } else {
+              setTermsAccepted(
+                false
+              );
+            }
+
+            setLoading(true);
           }
 
-          setLoading(false);
+          /**
+           * Run the async synchronization AFTER the
+           * auth callback has returned.
+           *
+           * setTimeout is intentional.
+           *
+           * Supabase currently warns that async Supabase
+           * calls directly inside onAuthStateChange can
+           * deadlock the client.
+           */
+          setTimeout(() => {
+            void synchronizeAuthenticatedState(
+              currentSession
+            );
+          }, 0);
         }
       );
 
+    /**
+     * Cleanup.
+     */
     return () => {
-      mounted = false;
+      mountedRef.current = false;
+
+      ++syncRequestRef.current;
+
       subscription.unsubscribe();
     };
   }, []);
 
   /**
    * Registration.
+   *
+   * Legal acceptance is NOT recorded here.
+   *
+   * The authenticated legal flow handles that.
    */
   const signUp = async (
     email: string,
@@ -594,68 +735,34 @@ export function AuthProvider({
       await supabase.auth.signUp({
         email,
         password,
-
         options: {
           data: {
-            full_name: fullName,
+            full_name:
+              fullName,
           },
         },
       });
 
     if (error) {
       return {
-        error: error.message,
+        error:
+          error.message,
       };
     }
 
     /**
-     * Supabase may require email confirmation.
+     * If Supabase immediately gives us a session,
+     * synchronize the authenticated application state.
      *
-     * If a session exists immediately, the user is
-     * authenticated and can proceed to the legal
-     * acceptance flow.
-     *
-     * If no session exists, the application should
-     * wait for email confirmation before continuing.
+     * If email confirmation is required and no session
+     * is returned, we leave the user unauthenticated.
      */
-    if (data.session?.user) {
-      setSession(data.session);
-      setUser(data.session.user);
-
-      const memberRecord =
-        await fetchMember(
-          data.session.user.id
-        );
-
-      const statusError =
-        validateMemberStatus(
-          memberRecord
-        );
-
-      if (statusError) {
-        await supabase.auth.signOut();
-
-        setSession(null);
-        setUser(null);
-        setMember(null);
-        setTermsAccepted(false);
-
-        return {
-          error: statusError,
-        };
-      }
-
-      const termsResult =
-        await checkTermsAcceptance(
-          data.session.user.id
-        );
-
-      if (termsResult.error) {
-        return {
-          error:
-            "Account created, but we could not verify the legal acceptance status.",
-        };
-      }
+    if (
+      data.session?.user
+    ) {
+      await synchronizeAuthenticatedState(
+        data.session
+      );
     }
 
     return {
@@ -665,13 +772,17 @@ export function AuthProvider({
 
   /**
    * Email/password login.
+   *
+   * Authentication itself is handled by Supabase.
+   *
+   * Member/legal synchronization is handled by the
+   * AuthContext auth-state listener.
    */
   const signIn = async (
     email: string,
     password: string
   ) => {
     const {
-      data,
       error,
     } =
       await supabase.auth.signInWithPassword({
@@ -681,103 +792,8 @@ export function AuthProvider({
 
     if (error) {
       return {
-        error: error.message,
-      };
-    }
-
-    const authenticatedUser =
-      data.user;
-
-    if (!authenticatedUser) {
-      await supabase.auth.signOut();
-
-      return {
         error:
-          "Unable to retrieve account information.",
-      };
-    }
-
-    /**
-     * Immediately check member status.
-     */
-    const {
-      data: memberData,
-      error: memberError,
-    } =
-      await supabase
-        .from("members")
-        .select("*")
-        .eq(
-          "user_id",
-          authenticatedUser.id
-        )
-        .maybeSingle();
-
-    if (memberError) {
-      console.error(
-        "Member status check failed:",
-        memberError
-      );
-
-      await supabase.auth.signOut();
-
-      setSession(null);
-      setUser(null);
-      setMember(null);
-      setTermsAccepted(false);
-
-      return {
-        error:
-          "Unable to verify account status.",
-      };
-    }
-
-    const memberRecord =
-      memberData as Member | null;
-
-    const statusError =
-      validateMemberStatus(
-        memberRecord
-      );
-
-    if (statusError) {
-      await supabase.auth.signOut();
-
-      setSession(null);
-      setUser(null);
-      setMember(null);
-      setTermsAccepted(false);
-
-      return {
-        error: statusError,
-      };
-    }
-
-    setSession(data.session);
-    setUser(authenticatedUser);
-    setMember(memberRecord);
-
-    /**
-     * Check the current legal versions.
-     *
-     * IMPORTANT:
-     *
-     * Not accepting the current terms is NOT
-     * an authentication failure.
-     *
-     * The user remains authenticated and is sent
-     * to the legal acceptance screen by the app
-     * navigation layer.
-     */
-    const termsResult =
-      await checkTermsAcceptance(
-        authenticatedUser.id
-      );
-
-    if (termsResult.error) {
-      return {
-        error:
-          "Unable to verify legal acceptance.",
+          error.message,
       };
     }
 
@@ -789,63 +805,79 @@ export function AuthProvider({
   /**
    * Logout.
    */
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut =
+    async (): Promise<void> => {
+      ++syncRequestRef.current;
 
-    setSession(null);
-    setUser(null);
-    setMember(null);
-    setTermsAccepted(false);
-  };
+      const {
+        error,
+      } =
+        await supabase.auth.signOut();
+
+      if (error) {
+        console.error(
+          "Sign out error:",
+          error
+        );
+      }
+
+      if (
+        mountedRef.current
+      ) {
+        setSession(null);
+        setUser(null);
+        setMember(null);
+        setTermsAccepted(false);
+        setLoading(false);
+      }
+    };
 
   /**
-   * Refresh member.
+   * Refresh member information.
    */
-  const refreshMember = async () => {
-    if (!user) {
-      return;
-    }
+  const refreshMember =
+    async (): Promise<void> => {
+      if (!user) {
+        return;
+      }
 
-    const memberRecord =
-      await fetchMember(
-        user.id
-      );
+      const memberRecord =
+        await fetchMember(
+          user.id
+        );
 
-    const statusError =
-      validateMemberStatus(
+      if (!mountedRef.current) {
+        return;
+      }
+
+      const statusError =
+        validateMemberStatus(
+          memberRecord
+        );
+
+      if (statusError) {
+        console.error(
+          "Member refresh validation failed:",
+          statusError
+        );
+
+        await signOut();
+
+        return;
+      }
+
+      setMember(
         memberRecord
       );
 
-    if (statusError) {
-      await supabase.auth.signOut();
-
-      setSession(null);
-      setUser(null);
-      setMember(null);
-      setTermsAccepted(false);
-
-      return;
-    }
-
-    /**
-     * Member is still valid.
-     *
-     * Also refresh legal acceptance because the
-     * current legal version may have changed while
-     * the user was logged in.
-     */
-    const termsResult =
+      /**
+       * Also refresh legal acceptance because
+       * the active legal version could change.
+       */
       await checkTermsAcceptance(
         user.id
       );
-
-    if (termsResult.error) {
-      console.error(
-        "Unable to refresh terms acceptance:",
-        termsResult.error
-      );
-    }
-  };
+    };
 
   return (
     <AuthContext.Provider
@@ -855,7 +887,6 @@ export function AuthProvider({
         member,
         loading,
         termsAccepted,
-
         signUp,
         signIn,
         signOut,

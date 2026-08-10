@@ -6,24 +6,38 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Linking,
-  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { Check, ExternalLink } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { Colors, FontFamily, BorderRadius, Shadows } from "@/constants/theme";
+import {
+  Colors,
+  FontFamily,
+  BorderRadius,
+  Shadows,
+} from "@/constants/theme";
+
 import { useAuth } from "@/context/AuthContext";
 import { recordTermsAcceptance } from "@/lib/terms";
 
 export default function LegalAcceptanceScreen() {
-  const { user } = useAuth();
+  const {
+    user,
+    refreshTermsAcceptance,
+  } = useAuth();
 
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Record legal acceptance for the currently
+   * authenticated Supabase user.
+   *
+   * Authentication and legal acceptance are intentionally
+   * separate states.
+   */
   const handleAccept = async () => {
     if (!accepted) {
       setError(
@@ -33,33 +47,82 @@ export default function LegalAcceptanceScreen() {
     }
 
     if (!user?.id) {
-      setError("Unable to identify your account. Please sign in again.");
+      setError(
+        "Unable to identify your account. Please sign in again."
+      );
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    const result = await recordTermsAcceptance(user.id);
+    try {
+      /*
+       * Record the acceptance against the real Supabase
+       * authenticated user ID.
+       *
+       * The current terms/privacy versions are handled
+       * inside lib/terms.ts.
+       */
+      const result = await recordTermsAcceptance(user.id);
 
-    if (result.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+
+      /*
+       * Re-check the legal status through AuthContext.
+       *
+       * This keeps AuthContext's termsAccepted state
+       * synchronized with the database before entering
+       * the application.
+       */
+      const refreshed = await refreshTermsAcceptance();
+
+      if (refreshed.error) {
+        setError(refreshed.error);
+        return;
+      }
+
+      if (!refreshed.accepted) {
+        setError(
+          "Your legal acceptance could not be verified. Please try again."
+        );
+        return;
+      }
+
+      /*
+       * Only enter the application after the database
+       * acceptance has been successfully verified.
+       */
+      router.replace("/(tabs)");
+    } catch (e) {
+      console.error("Legal acceptance error:", e);
+
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Unable to save your legal acceptance. Please try again."
+      );
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setLoading(false);
-
-    router.replace("/(tabs)");
   };
 
-const openTerms = () => {
-  router.push("./terms");
-};
+  /**
+   * Open Terms & Conditions.
+   */
+  const openTerms = () => {
+    router.push("/(auth)/terms");
+  };
 
-const openPrivacy = () => {
-  router.push("./privacy");
-};
+  /**
+   * Open Privacy Policy.
+   */
+  const openPrivacy = () => {
+    router.push("/(auth)/privacy");
+  };
 
   return (
     <LinearGradient
@@ -79,39 +142,50 @@ const openPrivacy = () => {
             <Text style={styles.logoText}>M13</Text>
           </View>
 
-          <Text style={styles.title}>Before You Continue</Text>
+          <Text style={styles.title}>
+            Before You Continue
+          </Text>
 
           <Text style={styles.subtitle}>
-            Please review and accept the M13 Club Terms & Conditions and
-            Privacy Policy.
+            Please review and accept the M13 Club Terms &
+            Conditions and Privacy Policy.
           </Text>
         </View>
 
         <View style={styles.card}>
           {error && (
             <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{error}</Text>
+              <Text style={styles.errorText}>
+                {error}
+              </Text>
             </View>
           )}
 
-          <Text style={styles.heading}>Legal Agreement</Text>
+          <Text style={styles.heading}>
+            Legal Agreement
+          </Text>
 
           <Text style={styles.description}>
-            To use M13 Club, you must read and agree to our Terms & Conditions
-            and acknowledge our Privacy Policy.
+            To use M13 Club, you must read and agree to our
+            Terms & Conditions and acknowledge our Privacy
+            Policy.
           </Text>
 
           <TouchableOpacity
             style={styles.documentButton}
             onPress={openTerms}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Open M13 Club Terms and Conditions"
           >
             <View style={styles.documentTextContainer}>
               <Text style={styles.documentTitle}>
                 M13 Club Terms & Conditions
               </Text>
+
               <Text style={styles.documentSubtitle}>
-                Rules for using your account, MC, vouchers, and services.
+                Rules for using your account, MC, vouchers,
+                transactions, and M13 Club services.
               </Text>
             </View>
 
@@ -126,13 +200,17 @@ const openPrivacy = () => {
             style={styles.documentButton}
             onPress={openPrivacy}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Open M13 Club Privacy Policy"
           >
             <View style={styles.documentTextContainer}>
               <Text style={styles.documentTitle}>
                 M13 Club Privacy Policy
               </Text>
+
               <Text style={styles.documentSubtitle}>
-                How M13 collects, uses, and protects your information.
+                How M13 collects, uses, stores, and protects
+                your personal information.
               </Text>
             </View>
 
@@ -146,10 +224,16 @@ const openPrivacy = () => {
           <TouchableOpacity
             style={styles.checkboxRow}
             onPress={() => {
-              setAccepted(!accepted);
+              setAccepted((current) => !current);
               setError(null);
             }}
             activeOpacity={0.8}
+            accessibilityRole="checkbox"
+            accessibilityState={{
+              checked: accepted,
+              disabled: loading,
+            }}
+            disabled={loading}
           >
             <View
               style={[
@@ -167,22 +251,30 @@ const openPrivacy = () => {
             </View>
 
             <Text style={styles.checkboxText}>
-              I have read and agree to the M13 Club Terms & Conditions and
-              acknowledge the M13 Club Privacy Policy.
+              I have read and agree to the M13 Club Terms &
+              Conditions and acknowledge the M13 Club
+              Privacy Policy.
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.acceptButton,
-              (!accepted || loading) && styles.buttonDisabled,
+              (!accepted || loading) &&
+                styles.buttonDisabled,
             ]}
             onPress={handleAccept}
             disabled={!accepted || loading}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: !accepted || loading,
+            }}
           >
             {loading ? (
-              <ActivityIndicator color={Colors.neutral[0]} />
+              <ActivityIndicator
+                color={Colors.neutral[0]}
+              />
             ) : (
               <Text style={styles.acceptButtonText}>
                 Accept & Continue
@@ -272,6 +364,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     fontSize: 14,
     color: Colors.error[700],
+    lineHeight: 20,
   },
 
   heading: {

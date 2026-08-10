@@ -1,4 +1,8 @@
-import { useState, useEffect } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   View,
   Text,
@@ -11,7 +15,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 
-import { Link, router } from "expo-router";
+import {
+  Link,
+  router,
+} from "expo-router";
 
 import {
   Mail,
@@ -21,7 +28,9 @@ import {
   EyeOff,
 } from "lucide-react-native";
 
-import { useAuth } from "@/context/AuthContext";
+import {
+  useAuth,
+} from "@/context/AuthContext";
 
 import {
   Colors,
@@ -30,14 +39,38 @@ import {
   Shadows,
 } from "@/constants/theme";
 
-import { LinearGradient } from "expo-linear-gradient";
+import {
+  LinearGradient,
+} from "expo-linear-gradient";
 
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 
-import { supabase } from "@/lib/supabase";
+import {
+  supabase,
+} from "@/lib/supabase";
 
+/**
+ * Completes AuthSession browser flows when applicable.
+ */
 WebBrowser.maybeCompleteAuthSession();
+
+/**
+ * Production website.
+ *
+ * IMPORTANT:
+ *
+ * We intentionally use the website root for WEB OAuth.
+ *
+ * We do NOT use:
+ *
+ * https://m13club.netlify.app/auth/callback
+ *
+ * because that route does not exist in the current
+ * web application.
+ */
+const PRODUCTION_WEB_URL =
+  "https://m13club.netlify.app";
 
 export default function LoginScreen() {
   const {
@@ -50,62 +83,84 @@ export default function LoginScreen() {
     validateCurrentUser,
   } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] =
+    useState("");
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState<string | null>(null);
 
   /**
-   * Handle an already-authenticated user.
+   * Handle an already authenticated user.
    *
-   * There are three important states:
+   * Authentication and legal acceptance are separate.
    *
-   * 1. Not authenticated
-   *    → stay on login
-   *
-   * 2. Authenticated but terms are not accepted
-   *    → go to legal
-   *
-   * 3. Authenticated and terms are accepted
-   *    → go to app
-   *
-   * We intentionally do NOT treat authentication
-   * and legal acceptance as the same thing.
+   * false -> Legal
+   * true  -> App
+   * null  -> wait
    */
   useEffect(() => {
     if (authLoading) {
       return;
     }
 
-    if (!session || !user || !member) {
+    if (
+      !session ||
+      !user ||
+      !member
+    ) {
       return;
     }
 
-    if (member.status !== "active") {
+    if (
+      member.status !==
+      "active"
+    ) {
       return;
     }
 
-    if (termsAccepted === false) {
-      router.replace("./legal");
+    if (
+      termsAccepted === false
+    ) {
+      console.log(
+        "Authenticated user has not accepted current legal versions."
+      );
+
+      router.replace(
+        "./legal"
+      );
+
       return;
     }
 
-    if (termsAccepted === true) {
-      router.replace("/(tabs)");
+    if (
+      termsAccepted === true
+    ) {
+      console.log(
+        "Authenticated user has accepted current legal versions."
+      );
+
+      router.replace(
+        "/(tabs)"
+      );
+
       return;
     }
 
     /**
-     * termsAccepted === null means that the legal
-     * acceptance status has not been successfully
-     * determined yet.
+     * termsAccepted === null
      *
-     * Do not send the user into the application
-     * until we know their legal status.
+     * Do nothing.
+     *
+     * AuthContext is still determining the legal state.
      */
   }, [
     session,
@@ -117,372 +172,507 @@ export default function LoginScreen() {
 
   /**
    * Email/password login.
+   *
+   * Navigation is intentionally NOT performed here.
+   *
+   * AuthContext receives the Supabase auth event and
+   * determines the member/legal state.
    */
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      setError(
-        "Please enter your email and password."
-      );
-      return;
-    }
+  const handleLogin =
+    async () => {
+      if (
+        !email.trim() ||
+        !password
+      ) {
+        setError(
+          "Please enter your email and password."
+        );
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await signIn(
-        email.trim(),
-        password
-      );
-
-      if (result.error) {
-        setError(result.error);
         return;
       }
 
-      /**
-       * IMPORTANT:
-       *
-       * signIn() already checks the current Terms
-       * & Privacy Policy acceptance.
-       *
-       * We intentionally do not immediately navigate
-       * here.
-       *
-       * AuthContext updates:
-       *
-       *   session
-       *   user
-       *   member
-       *   termsAccepted
-       *
-       * and the useEffect above decides whether the
-       * user goes to:
-       *
-       *   ./legal
-       *
-       * or:
-       *
-       *   /(tabs)
-       */
-    } catch (e) {
-      console.error(
-        "Email login error:",
-        e
-      );
+      if (loading) {
+        return;
+      }
 
-      setError(
-        "An unexpected error occurred while signing in. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result =
+          await signIn(
+            email.trim(),
+            password
+          );
+
+        if (
+          result.error
+        ) {
+          setError(
+            result.error
+          );
+
+          return;
+        }
+
+        /**
+         * Do not navigate here.
+         *
+         * AuthContext will receive SIGNED_IN,
+         * validate the member, check legal acceptance,
+         * and update:
+         *
+         * session
+         * user
+         * member
+         * termsAccepted
+         *
+         * The useEffect above then chooses:
+         *
+         * ./legal
+         *
+         * or:
+         *
+         * /(tabs)
+         */
+      } catch (e) {
+        console.error(
+          "Email login error:",
+          e
+        );
+
+        setError(
+          "An unexpected error occurred while signing in. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   /**
    * Google OAuth login.
+   *
+   * PLATFORM BEHAVIOR
+   *
+   * Android:
+   *
+   * 1. Create native deep-link callback.
+   * 2. Ask Supabase for Google OAuth URL.
+   * 3. Open browser.
+   * 4. Browser returns to native app.
+   * 5. Extract tokens.
+   * 6. Establish Supabase session.
+   * 7. Validate M13 account.
+   *
+   * Web:
+   *
+   * 1. Redirect to Google through Supabase.
+   * 2. Supabase redirects to the production site root.
+   * 3. Supabase client restores the session.
+   * 4. AuthContext handles member/legal state.
+   *
+   * Google authentication NEVER means
+   * Terms/Privacy acceptance.
    */
-/**
- * Google OAuth login.
- *
- * Flow:
- *
- * 1. Open Google OAuth through Supabase.
- * 2. Receive the OAuth callback.
- * 3. Create the Supabase session.
- * 4. Validate the authenticated M13 account.
- * 5. AuthContext checks the member status and current
- *    Terms & Conditions / Privacy Policy versions.
- *
- * IMPORTANT:
- *
- * Google authentication does NOT mean the user has
- * accepted M13 Club's legal documents.
- *
- * If the user has not accepted the current legal versions,
- * they remain authenticated but are sent to ./legal.
- */
-const signInWithGoogle = async () => {
-  if (loading) {
-    return;
-  }
+  const signInWithGoogle =
+    async () => {
+      if (loading) {
+        return;
+      }
 
-  try {
-    setLoading(true);
-    setError(null);
+      try {
+        setLoading(true);
+        setError(null);
 
-    /**
-     * Create the Expo deep-link callback URL.
-     */
-    const redirectTo =
-      Linking.createURL("auth/callback");
+        /**
+         * =====================================================
+         * WEB
+         * =====================================================
+         *
+         * Do not create /auth/callback on production web.
+         *
+         * The current application does not have that route.
+         */
+        if (
+          Platform.OS ===
+          "web"
+        ) {
+          console.log(
+            "Google OAuth platform: WEB"
+          );
 
-    console.log(
-      "Google Redirect URL:",
-      redirectTo
-    );
+          console.log(
+            "Google Web Redirect URL:",
+            PRODUCTION_WEB_URL
+          );
 
-    /**
-     * Start Google OAuth through Supabase.
-     */
-    const {
-      data,
-      error: oauthError,
-    } =
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
+          const {
+            data,
+            error:
+              oauthError,
+          } =
+            await supabase.auth.signInWithOAuth(
+              {
+                provider:
+                  "google",
 
-        options: {
-          redirectTo,
+                options: {
+                  redirectTo:
+                    PRODUCTION_WEB_URL,
+
+                  /**
+                   * We perform the browser redirect
+                   * ourselves.
+                   */
+                  skipBrowserRedirect:
+                    true,
+                },
+              }
+            );
+
+          if (
+            oauthError
+          ) {
+            console.error(
+              "Google Web OAuth error:",
+              oauthError
+            );
+
+            setError(
+              oauthError.message
+            );
+
+            return;
+          }
+
+          if (
+            !data?.url
+          ) {
+            console.error(
+              "Google Web OAuth did not return a URL."
+            );
+
+            setError(
+              "No Google authentication URL was returned."
+            );
+
+            return;
+          }
+
+          console.log(
+            "Redirecting browser to Google OAuth."
+          );
 
           /**
-           * We manually open the browser using
-           * expo-web-browser.
+           * Full browser navigation.
+           *
+           * After Google authentication,
+           * Supabase redirects back to:
+           *
+           * https://m13club.netlify.app
+           *
+           * The Supabase client restores the session,
+           * and AuthContext handles the rest.
            */
-          skipBrowserRedirect: true,
-        },
-      });
+          window.location.assign(
+            data.url
+          );
 
-    if (oauthError) {
-      console.error(
-        "Google OAuth error:",
-        oauthError
-      );
-
-      setError(
-        oauthError.message
-      );
-
-      return;
-    }
-
-    if (!data?.url) {
-      console.error(
-        "Google OAuth did not return a URL."
-      );
-
-      setError(
-        "No Google authentication URL was returned."
-      );
-
-      return;
-    }
-
-    console.log(
-      "Opening Google OAuth URL."
-    );
-
-    /**
-     * Open Google authentication in the browser.
-     */
-    const result =
-      await WebBrowser.openAuthSessionAsync(
-        data.url,
-        redirectTo
-      );
-
-    console.log(
-      "Google Browser Result:",
-      result
-    );
-
-    /**
-     * User cancelled or the browser flow did not
-     * complete successfully.
-     */
-    if (result.type !== "success") {
-      console.log(
-        "Google authentication was not completed:",
-        result.type
-      );
-
-      return;
-    }
-
-    /**
-     * Supabase returns the authentication tokens
-     * in the URL fragment.
-     *
-     * Example:
-     *
-     * m13://auth/callback#
-     * access_token=...
-     * &refresh_token=...
-     */
-    const hash =
-      result.url.split("#")[1];
-
-    if (!hash) {
-      console.error(
-        "Google callback did not contain a hash."
-      );
-
-      setError(
-        "No authentication tokens were returned from Google."
-      );
-
-      return;
-    }
-
-    const params =
-      new URLSearchParams(hash);
-
-    const access_token =
-      params.get("access_token");
-
-    const refresh_token =
-      params.get("refresh_token");
-
-    if (
-      !access_token ||
-      !refresh_token
-    ) {
-      console.error(
-        "Google callback is missing authentication tokens.",
-        {
-          access_token:
-            !!access_token,
-
-          refresh_token:
-            !!refresh_token,
+          return;
         }
-      );
 
-      setError(
-        "The Google authentication response was incomplete."
-      );
+        /**
+         * =====================================================
+         * NATIVE / ANDROID
+         * =====================================================
+         *
+         * This is still an OAuth callback mechanism,
+         * but it is NOT an Expo Router page.
+         *
+         * It is a native deep link handled by
+         * WebBrowser/AuthSession.
+         */
+        const redirectTo =
+          Linking.createURL(
+            "auth/callback"
+          );
 
-      return;
-    }
+        console.log(
+          "Google Native Redirect URL:",
+          redirectTo
+        );
 
-    console.log(
-      "Google tokens received. Creating Supabase session."
-    );
+        /**
+         * Start Google OAuth through Supabase.
+         */
+        const {
+          data,
+          error:
+            oauthError,
+        } =
+          await supabase.auth.signInWithOAuth(
+            {
+              provider:
+                "google",
 
-    /**
-     * Establish the authenticated Supabase session.
-     *
-     * IMPORTANT:
-     *
-     * This only establishes authentication.
-     *
-     * It does NOT mean the user has accepted
-     * the M13 Club Terms & Conditions or
-     * Privacy Policy.
-     */
-    const {
-      data: sessionData,
-      error: sessionError,
-    } =
-      await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
+              options: {
+                redirectTo,
 
-    if (sessionError) {
-      console.error(
-        "Supabase session error:",
-        sessionError
-      );
+                /**
+                 * Native app opens the browser
+                 * manually.
+                 */
+                skipBrowserRedirect:
+                  true,
+              },
+            }
+          );
 
-      setError(
-        sessionError.message
-      );
+        if (
+          oauthError
+        ) {
+          console.error(
+            "Google OAuth error:",
+            oauthError
+          );
 
-      return;
-    }
+          setError(
+            oauthError.message
+          );
 
-    if (
-      !sessionData?.session?.user
-    ) {
-      console.error(
-        "Supabase session was created without a user."
-      );
+          return;
+        }
 
-      setError(
-        "Unable to retrieve your M13 Club account."
-      );
+        if (
+          !data?.url
+        ) {
+          console.error(
+            "Google OAuth did not return a URL."
+          );
 
-      return;
-    }
+          setError(
+            "No Google authentication URL was returned."
+          );
 
-    console.log(
-      "Google Supabase session established:",
-      sessionData.session.user.id
-    );
+          return;
+        }
 
-    /**
-     * Validate the authenticated M13 account.
-     *
-     * validateCurrentUser() checks:
-     *
-     * 1. Authenticated Supabase user exists.
-     * 2. M13 members record exists.
-     * 3. Member status is active.
-     * 4. Current Terms & Conditions and
-     *    Privacy Policy versions are accepted.
-     *
-     * It does NOT automatically accept anything.
-     */
-    const validation =
-      await validateCurrentUser();
+        console.log(
+          "Opening Google OAuth URL."
+        );
 
-    /**
-     * NEVER navigate before checking validation.error.
-     */
-    if (validation.error) {
-      console.error(
-        "Google account validation failed:",
-        validation.error
-      );
+        /**
+         * Open Google authentication.
+         */
+        const result =
+          await WebBrowser.openAuthSessionAsync(
+            data.url,
+            redirectTo
+          );
 
-      setError(
-        validation.error
-      );
+        console.log(
+          "Google Browser Result:",
+          result
+        );
 
-      return;
-    }
+        /**
+         * User cancelled or the browser flow
+         * did not complete.
+         */
+        if (
+          result.type !==
+          "success"
+        ) {
+          console.log(
+            "Google authentication was not completed:",
+            result.type
+          );
 
-    /**
-     * At this point:
-     *
-     * - Google authentication succeeded.
-     * - Supabase session exists.
-     * - M13 member exists.
-     * - Member status is active.
-     * - AuthContext has checked the current legal versions.
-     *
-     * termsAccepted is updated asynchronously by AuthContext,
-     * so we do NOT manually navigate here.
-     *
-     * The useEffect above watches termsAccepted and will
-     * send the user to either:
-     *
-     *     ./legal
-     *
-     * or:
-     *
-     *     /(tabs)
-     */
-    console.log(
-      "Google account successfully validated."
-    );
+          return;
+        }
 
-  } catch (e) {
-    console.error(
-      "Google Login Exception:",
-      e
-    );
+        /**
+         * Supabase returns the authentication
+         * response in the URL fragment.
+         *
+         * Example:
+         *
+         * m13://auth/callback#
+         * access_token=...
+         * &refresh_token=...
+         */
+        const hash =
+          result.url.split(
+            "#"
+          )[1];
 
-    setError(
-      e instanceof Error
-        ? e.message
-        : "An unexpected error occurred while signing in with Google."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+        if (!hash) {
+          console.error(
+            "Google callback did not contain a hash."
+          );
+
+          setError(
+            "No authentication tokens were returned from Google."
+          );
+
+          return;
+        }
+
+        const params =
+          new URLSearchParams(
+            hash
+          );
+
+        const access_token =
+          params.get(
+            "access_token"
+          );
+
+        const refresh_token =
+          params.get(
+            "refresh_token"
+          );
+
+        if (
+          !access_token ||
+          !refresh_token
+        ) {
+          console.error(
+            "Google callback is missing authentication tokens.",
+            {
+              access_token:
+                !!access_token,
+
+              refresh_token:
+                !!refresh_token,
+            }
+          );
+
+          setError(
+            "The Google authentication response was incomplete."
+          );
+
+          return;
+        }
+
+        console.log(
+          "Google tokens received. Creating Supabase session."
+        );
+
+        /**
+         * Establish authenticated Supabase session.
+         *
+         * This authenticates the user only.
+         *
+         * It does NOT accept legal documents.
+         */
+        const {
+          data:
+            sessionData,
+          error:
+            sessionError,
+        } =
+          await supabase.auth.setSession(
+            {
+              access_token,
+              refresh_token,
+            }
+          );
+
+        if (
+          sessionError
+        ) {
+          console.error(
+            "Supabase session error:",
+            sessionError
+          );
+
+          setError(
+            sessionError.message
+          );
+
+          return;
+        }
+
+        if (
+          !sessionData?.session?.user
+        ) {
+          console.error(
+            "Supabase session was created without a user."
+          );
+
+          setError(
+            "Unable to retrieve your M13 Club account."
+          );
+
+          return;
+        }
+
+        console.log(
+          "Google Supabase session established:",
+          sessionData.session
+            .user.id
+        );
+
+        /**
+         * Explicitly validate the M13 account.
+         *
+         * This checks:
+         *
+         * 1. Supabase user
+         * 2. members row
+         * 3. member status
+         * 4. current Terms/Privacy acceptance
+         */
+        const validation =
+          await validateCurrentUser();
+
+        if (
+          validation.error
+        ) {
+          console.error(
+            "Google account validation failed:",
+            validation.error
+          );
+
+          setError(
+            validation.error
+          );
+
+          return;
+        }
+
+        /**
+         * DO NOT navigate manually.
+         *
+         * AuthContext has updated termsAccepted.
+         *
+         * The useEffect above will send the user to:
+         *
+         * ./legal
+         *
+         * or:
+         *
+         * /(tabs)
+         */
+        console.log(
+          "Google account successfully validated."
+        );
+      } catch (e) {
+        console.error(
+          "Google Login Exception:",
+          e
+        );
+
+        setError(
+          e instanceof Error
+            ? e.message
+            : "An unexpected error occurred while signing in with Google."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
     <LinearGradient
@@ -491,15 +681,20 @@ const signInWithGoogle = async () => {
         Colors.primary[800],
         Colors.neutral[900],
       ]}
-      style={styles.gradient}
+      style={
+        styles.gradient
+      }
     >
       <KeyboardAvoidingView
         behavior={
-          Platform.OS === "web"
+          Platform.OS ===
+          "web"
             ? undefined
             : "padding"
         }
-        style={{ flex: 1 }}
+        style={{
+          flex: 1,
+        }}
       >
         <ScrollView
           contentContainerStyle={
@@ -507,23 +702,37 @@ const signInWithGoogle = async () => {
           }
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
+          <View
+            style={
+              styles.header
+            }
+          >
             <View
-              style={styles.logoContainer}
+              style={
+                styles.logoContainer
+              }
             >
               <Text
-                style={styles.logoText}
+                style={
+                  styles.logoText
+                }
               >
                 M13
               </Text>
             </View>
 
-            <Text style={styles.title}>
+            <Text
+              style={
+                styles.title
+              }
+            >
               Welcome Back
             </Text>
 
             <Text
-              style={styles.subtitle}
+              style={
+                styles.subtitle
+              }
             >
               Sign in to your membership
               account
@@ -531,14 +740,20 @@ const signInWithGoogle = async () => {
           </View>
 
           <View
-            style={styles.formContainer}
+            style={
+              styles.formContainer
+            }
           >
             {error && (
               <View
-                style={styles.errorBanner}
+                style={
+                  styles.errorBanner
+                }
               >
                 <Text
-                  style={styles.errorText}
+                  style={
+                    styles.errorText
+                  }
                 >
                   {error}
                 </Text>
@@ -546,10 +761,14 @@ const signInWithGoogle = async () => {
             )}
 
             <View
-              style={styles.inputGroup}
+              style={
+                styles.inputGroup
+              }
             >
               <Text
-                style={styles.label}
+                style={
+                  styles.label
+                }
               >
                 Email Address
               </Text>
@@ -568,29 +787,41 @@ const signInWithGoogle = async () => {
                 />
 
                 <TextInput
-                  style={styles.input}
+                  style={
+                    styles.input
+                  }
                   placeholder="you@example.com"
                   placeholderTextColor={
                     Colors.neutral[500]
                   }
-                  value={email}
+                  value={
+                    email
+                  }
                   onChangeText={
                     setEmail
                   }
                   autoCapitalize="none"
-                  autoCorrect={false}
+                  autoCorrect={
+                    false
+                  }
                   keyboardType="email-address"
                   textContentType="emailAddress"
-                  editable={!loading}
+                  editable={
+                    !loading
+                  }
                 />
               </View>
             </View>
 
             <View
-              style={styles.inputGroup}
+              style={
+                styles.inputGroup
+              }
             >
               <Text
-                style={styles.label}
+                style={
+                  styles.label
+                }
               >
                 Password
               </Text>
@@ -609,12 +840,16 @@ const signInWithGoogle = async () => {
                 />
 
                 <TextInput
-                  style={styles.input}
+                  style={
+                    styles.input
+                  }
                   placeholder="Enter your password"
                   placeholderTextColor={
                     Colors.neutral[500]
                   }
-                  value={password}
+                  value={
+                    password
+                  }
                   onChangeText={
                     setPassword
                   }
@@ -622,7 +857,9 @@ const signInWithGoogle = async () => {
                     !showPassword
                   }
                   textContentType="password"
-                  editable={!loading}
+                  editable={
+                    !loading
+                  }
                 />
 
                 <TouchableOpacity
@@ -631,7 +868,9 @@ const signInWithGoogle = async () => {
                       !showPassword
                     )
                   }
-                  disabled={loading}
+                  disabled={
+                    loading
+                  }
                 >
                   {showPassword ? (
                     <EyeOff
@@ -639,7 +878,9 @@ const signInWithGoogle = async () => {
                       color={
                         Colors.neutral[400]
                       }
-                      strokeWidth={2}
+                      strokeWidth={
+                        2
+                      }
                     />
                   ) : (
                     <Eye
@@ -647,7 +888,9 @@ const signInWithGoogle = async () => {
                       color={
                         Colors.neutral[400]
                       }
-                      strokeWidth={2}
+                      strokeWidth={
+                        2
+                      }
                     />
                   )}
                 </TouchableOpacity>
@@ -660,9 +903,15 @@ const signInWithGoogle = async () => {
                 loading &&
                   styles.buttonDisabled,
               ]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.85}
+              onPress={
+                handleLogin
+              }
+              disabled={
+                loading
+              }
+              activeOpacity={
+                0.85
+              }
             >
               {loading ? (
                 <ActivityIndicator
@@ -700,8 +949,12 @@ const signInWithGoogle = async () => {
               onPress={
                 signInWithGoogle
               }
-              disabled={loading}
-              activeOpacity={0.85}
+              disabled={
+                loading
+              }
+              activeOpacity={
+                0.85
+              }
             >
               {loading ? (
                 <ActivityIndicator
@@ -719,20 +972,28 @@ const signInWithGoogle = async () => {
             </TouchableOpacity>
 
             <View
-              style={styles.footer}
+              style={
+                styles.footer
+              }
             >
               <Text
-                style={styles.footerText}
+                style={
+                  styles.footerText
+                }
               >
                 Don't have an account?{" "}
               </Text>
 
               <Link
                 href="./register"
-                style={styles.linkText}
+                style={
+                  styles.linkText
+                }
               >
                 <Text
-                  style={styles.linkText}
+                  style={
+                    styles.linkText
+                  }
                 >
                   Join the Club
                 </Text>
@@ -745,192 +1006,210 @@ const signInWithGoogle = async () => {
   );
 }
 
-const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
+const styles =
+  StyleSheet.create({
+    gradient: {
+      flex: 1,
+    },
 
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-    minHeight: "100%",
-  },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent:
+        "center",
+      padding: 24,
+      minHeight:
+        "100%",
+    },
 
-  header: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
+    header: {
+      alignItems:
+        "center",
+      marginBottom: 40,
+    },
 
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.xl,
-    backgroundColor:
-      Colors.neutral[0],
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-    ...Shadows.lg,
-  },
+    logoContainer: {
+      width: 80,
+      height: 80,
+      borderRadius:
+        BorderRadius.xl,
+      backgroundColor:
+        Colors.neutral[0],
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+      marginBottom: 24,
+      ...Shadows.lg,
+    },
 
-  logoText: {
-    fontFamily:
-      FontFamily.display,
-    fontSize: 28,
-    color:
-      Colors.primary[950],
-  },
+    logoText: {
+      fontFamily:
+        FontFamily.display,
+      fontSize: 28,
+      color:
+        Colors.primary[950],
+    },
 
-  title: {
-    fontFamily:
-      FontFamily.display,
-    fontSize: 32,
-    color:
-      Colors.neutral[0],
-    marginBottom: 8,
-  },
+    title: {
+      fontFamily:
+        FontFamily.display,
+      fontSize: 32,
+      color:
+        Colors.neutral[0],
+      marginBottom: 8,
+    },
 
-  subtitle: {
-    fontFamily:
-      FontFamily.regular,
-    fontSize: 16,
-    color:
-      Colors.neutral[300],
-  },
+    subtitle: {
+      fontFamily:
+        FontFamily.regular,
+      fontSize: 16,
+      color:
+        Colors.neutral[300],
+    },
 
-  formContainer: {
-    backgroundColor:
-      Colors.neutral[0],
-    borderRadius:
-      BorderRadius.xl,
-    padding: 28,
-    ...Shadows.lg,
-    maxWidth: 480,
-    width: "100%",
-    alignSelf: "center",
-  },
+    formContainer: {
+      backgroundColor:
+        Colors.neutral[0],
+      borderRadius:
+        BorderRadius.xl,
+      padding: 28,
+      ...Shadows.lg,
+      maxWidth: 480,
+      width: "100%",
+      alignSelf:
+        "center",
+    },
 
-  errorBanner: {
-    backgroundColor:
-      Colors.error[50],
-    borderWidth: 1,
-    borderColor:
-      Colors.error[200],
-    borderRadius:
-      BorderRadius.md,
-    padding: 14,
-    marginBottom: 20,
-  },
+    errorBanner: {
+      backgroundColor:
+        Colors.error[50],
+      borderWidth: 1,
+      borderColor:
+        Colors.error[200],
+      borderRadius:
+        BorderRadius.md,
+      padding: 14,
+      marginBottom: 20,
+    },
 
-  errorText: {
-    fontFamily:
-      FontFamily.regular,
-    fontSize: 14,
-    color:
-      Colors.error[700],
-  },
+    errorText: {
+      fontFamily:
+        FontFamily.regular,
+      fontSize: 14,
+      color:
+        Colors.error[700],
+    },
 
-  inputGroup: {
-    marginBottom: 20,
-  },
+    inputGroup: {
+      marginBottom: 20,
+    },
 
-  label: {
-    fontFamily:
-      FontFamily.medium,
-    fontSize: 14,
-    color:
-      Colors.neutral[700],
-    marginBottom: 8,
-  },
+    label: {
+      fontFamily:
+        FontFamily.medium,
+      fontSize: 14,
+      color:
+        Colors.neutral[700],
+      marginBottom: 8,
+    },
 
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor:
-      Colors.neutral[200],
-    borderRadius:
-      BorderRadius.md,
-    paddingHorizontal: 16,
-    height: 56,
-    gap: 12,
-  },
+    inputWrapper: {
+      flexDirection:
+        "row",
+      alignItems:
+        "center",
+      borderWidth: 1.5,
+      borderColor:
+        Colors.neutral[200],
+      borderRadius:
+        BorderRadius.md,
+      paddingHorizontal: 16,
+      height: 56,
+      gap: 12,
+    },
 
-  input: {
-    flex: 1,
-    fontFamily:
-      FontFamily.regular,
-    fontSize: 16,
-    color:
-      Colors.neutral[900],
-  },
+    input: {
+      flex: 1,
+      fontFamily:
+        FontFamily.regular,
+      fontSize: 16,
+      color:
+        Colors.neutral[900],
+    },
 
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent:
-      "center",
-    gap: 8,
-    backgroundColor:
-      Colors.primary[700],
-    borderRadius:
-      BorderRadius.md,
-    height: 56,
-    marginTop: 8,
-    ...Shadows.md,
-  },
+    button: {
+      flexDirection:
+        "row",
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+      gap: 8,
+      backgroundColor:
+        Colors.primary[700],
+      borderRadius:
+        BorderRadius.md,
+      height: 56,
+      marginTop: 8,
+      ...Shadows.md,
+    },
 
-  buttonDisabled: {
-    opacity: 0.6,
-  },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
 
-  buttonText: {
-    fontFamily:
-      FontFamily.semibold,
-    fontSize: 17,
-    color:
-      Colors.neutral[0],
-  },
+    buttonText: {
+      fontFamily:
+        FontFamily.semibold,
+      fontSize: 17,
+      color:
+        Colors.neutral[0],
+    },
 
-  googleButton: {
-    marginTop: 16,
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 56,
-  },
+    googleButton: {
+      marginTop: 16,
+      backgroundColor:
+        "#ffffff",
+      borderWidth: 1,
+      borderColor:
+        "#ddd",
+      padding: 15,
+      borderRadius: 10,
+      alignItems:
+        "center",
+      justifyContent:
+        "center",
+      minHeight: 56,
+    },
 
-  googleText: {
-    fontWeight: "600",
-    color: "#222",
-  },
+    googleText: {
+      fontWeight: "600",
+      color: "#222",
+    },
 
-  footer: {
-    flexDirection: "row",
-    justifyContent:
-      "center",
-    alignItems: "center",
-    marginTop: 24,
-  },
+    footer: {
+      flexDirection:
+        "row",
+      justifyContent:
+        "center",
+      alignItems:
+        "center",
+      marginTop: 24,
+    },
 
-  footerText: {
-    fontFamily:
-      FontFamily.regular,
-    fontSize: 15,
-    color:
-      Colors.neutral[500],
-  },
+    footerText: {
+      fontFamily:
+        FontFamily.regular,
+      fontSize: 15,
+      color:
+        Colors.neutral[500],
+    },
 
-  linkText: {
-    fontFamily:
-      FontFamily.semibold,
-    fontSize: 15,
-    color:
-      Colors.primary[700],
-  },
-});
+    linkText: {
+      fontFamily:
+        FontFamily.semibold,
+      fontSize: 15,
+      color:
+        Colors.primary[700],
+    },
+  });

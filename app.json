@@ -36,11 +36,11 @@
     },
     "owner": "albopilo",
     "android": {
-  "package": "com.millennium.m13club",
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/images/adaptive-icon.png",
-    "backgroundColor": "#111827"
-  }
-}
+      "package": "com.millennium.m13club",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#111827"
+      }
+    }
   }
 }
