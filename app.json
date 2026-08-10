@@ -15,11 +15,14 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-    "web": {
-      "bundler": "metro",
-      "output": "single",
-      "favicon": "./assets/images/favicon.png"
-    },
+ "web": {
+  "bundler": "metro",
+  "output": "single",
+  "favicon": "./assets/images/favicon.png",
+  "name": "M13 Club",
+  "shortName": "M13 Club",
+  "themeColor": "#111827"
+},
     "plugins": [
       "expo-router",
       "expo-font",
