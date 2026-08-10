@@ -8,15 +8,17 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
+  Alert,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { supabase } from "@/lib/supabase";
 import { useFocusEffect } from "@react-navigation/native";
-import { Alert } from "react-native";
 import { useAuth } from "@/context/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SalesScreen() {
   const { member } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [vouchers, setVouchers] = useState<any[]>([]);
@@ -36,7 +38,10 @@ export default function SalesScreen() {
       .select("*")
       .eq("status", "available")
       .eq("is_active", true)
-      .order("created_at", { ascending: true });
+      // Always sort vouchers by MC value, lowest to highest.
+      .order("value", { ascending: true })
+      // Stable secondary ordering when two vouchers have the same value.
+      .order("id", { ascending: true });
 
     if (error) {
       console.log(error);
@@ -91,9 +96,7 @@ export default function SalesScreen() {
 
     if (error) {
       setShowConfirmModal(false);
-
       Alert.alert("Unable to Sell Voucher", error.message);
-
       return;
     }
 
@@ -102,7 +105,6 @@ export default function SalesScreen() {
      * the dedicated success modal.
      */
     setShowConfirmModal(false);
-
     setSelectedVoucher(voucher);
     setCopied(false);
     setShowSuccessModal(true);
@@ -136,7 +138,6 @@ export default function SalesScreen() {
     setShowSuccessModal(false);
     setSelectedVoucher(null);
     setCopied(false);
-
     loadVouchers();
   };
 
@@ -162,8 +163,18 @@ export default function SalesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={
           vouchers.length === 0
-            ? styles.emptyList
-            : styles.listContent
+            ? [
+                styles.emptyList,
+                {
+                  paddingBottom: insets.bottom + 24,
+                },
+              ]
+            : [
+                styles.listContent,
+                {
+                  paddingBottom: insets.bottom + 90,
+                },
+              ]
         }
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
@@ -382,7 +393,6 @@ export default function SalesScreen() {
               /* ================================================= */
               /* PROCESSING STATE */
               /* ================================================= */
-
               <View style={styles.processingContainer}>
                 <View style={styles.processingIcon}>
                   <ActivityIndicator
@@ -537,7 +547,6 @@ const styles = StyleSheet.create({
    * MAIN SCREEN
    * =========================================================
    */
-
   container: {
     flex: 1,
     backgroundColor: "#F5F7FA",
@@ -558,7 +567,13 @@ const styles = StyleSheet.create({
 
   listContent: {
     paddingTop: 10,
-    paddingBottom: 24,
+
+    /*
+     * Bottom padding is applied dynamically using
+     * the device safe-area inset plus additional space
+     * for the bottom tab bar.
+     */
+    paddingBottom: 90,
   },
 
   emptyList: {
@@ -572,14 +587,12 @@ const styles = StyleSheet.create({
    * VOUCHER CARD
    * =========================================================
    */
-
   card: {
     backgroundColor: "#FFFFFF",
     marginHorizontal: 12,
     marginVertical: 7,
     padding: 16,
     borderRadius: 14,
-
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -587,7 +600,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.06,
     shadowRadius: 6,
-
     elevation: 2,
   },
 
@@ -672,7 +684,6 @@ const styles = StyleSheet.create({
    * EMPTY STATE
    * =========================================================
    */
-
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -714,7 +725,6 @@ const styles = StyleSheet.create({
    * MODAL
    * =========================================================
    */
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(16, 24, 40, 0.55)",
@@ -744,7 +754,6 @@ const styles = StyleSheet.create({
    * CONFIRMATION MODAL
    * =========================================================
    */
-
   modalHeader: {
     alignItems: "center",
     marginBottom: 18,
@@ -803,7 +812,6 @@ const styles = StyleSheet.create({
   /*
    * Warning
    */
-
   warningBox: {
     flexDirection: "row",
     backgroundColor: "#FFFAEB",
@@ -850,7 +858,6 @@ const styles = StyleSheet.create({
   /*
    * Information list
    */
-
   infoSection: {
     marginBottom: 20,
   },
@@ -892,7 +899,6 @@ const styles = StyleSheet.create({
   /*
    * Modal buttons
    */
-
   modalButtons: {
     flexDirection: "row",
     gap: 10,
@@ -939,7 +945,6 @@ const styles = StyleSheet.create({
    * PROCESSING STATE
    * =========================================================
    */
-
   processingContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -982,7 +987,6 @@ const styles = StyleSheet.create({
    * SUCCESS MODAL
    * =========================================================
    */
-
   successHeader: {
     alignItems: "center",
     marginBottom: 18,
@@ -1042,7 +1046,6 @@ const styles = StyleSheet.create({
   /*
    * Voucher code
    */
-
   codeSection: {
     marginBottom: 15,
   },
@@ -1101,7 +1104,6 @@ const styles = StyleSheet.create({
   /*
    * Instruction
    */
-
   instructionBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -1137,7 +1139,6 @@ const styles = StyleSheet.create({
   /*
    * Recorded status
    */
-
   recordedRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1169,7 +1170,6 @@ const styles = StyleSheet.create({
   /*
    * Done
    */
-
   doneButton: {
     backgroundColor: "#0A6EFF",
     paddingVertical: 14,
