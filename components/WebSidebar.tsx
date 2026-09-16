@@ -18,6 +18,7 @@ import {
   ShoppingCart,
 } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   Colors,
   FontFamily,
@@ -40,6 +41,7 @@ type NavItem = {
 
 export function WebSidebar() {
   const { member, signOut } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -53,25 +55,25 @@ export function WebSidebar() {
       : [
           {
             route: 'index',
-            label: 'Home',
+            label: t('tab.home'),
             icon: Home,
             href: '/(tabs)/',
           },
           {
             route: 'wallet',
-            label: 'Wallet',
+            label: t('tab.wallet'),
             icon: Wallet,
             href: '/(tabs)/wallet',
           },
           {
             route: 'payment',
-            label: 'Payment',
+            label: t('tab.payment'),
             icon: CreditCard,
             href: '/(tabs)/payment',
           },
           {
             route: 'vouchers',
-            label: 'Vouchers',
+            label: t('tab.vouchers'),
             icon: Ticket,
             href: '/(tabs)/vouchers',
           },
@@ -80,13 +82,13 @@ export function WebSidebar() {
       ? [
           {
             route: 'sales',
-            label: 'Sales',
+            label: t('tab.sales'),
             icon: ShoppingCart,
             href: '/(tabs)/sales',
           },
           {
             route: 'payment-logs',
-            label: 'Logs',
+            label: t('tab.logs'),
             icon: Receipt,
             href: '/(tabs)/payment-logs',
           },
@@ -94,7 +96,7 @@ export function WebSidebar() {
       : []),
     {
       route: 'profile',
-      label: 'Profile',
+      label: t('tab.profile'),
       icon: UserIcon,
       href: '/(tabs)/profile',
     },
@@ -102,7 +104,7 @@ export function WebSidebar() {
       ? [
           {
             route: 'admin',
-            label: 'Admin',
+            label: t('tab.admin'),
             icon: Shield,
             href: '/(tabs)/admin',
           },
@@ -142,7 +144,7 @@ export function WebSidebar() {
         </View>
 
         <Text style={styles.appName}>
-          M13 Club
+          {t('sidebar.appName')}
         </Text>
       </View>
 
@@ -196,7 +198,7 @@ export function WebSidebar() {
             style={styles.memberName}
             numberOfLines={1}
           >
-            {member?.full_name || 'Member'}
+            {member?.full_name || t('sidebar.member')}
           </Text>
 
           <Text
@@ -225,7 +227,7 @@ export function WebSidebar() {
 
 const styles = StyleSheet.create({
   sidebar: {
-    position: 'fixed',
+    position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,

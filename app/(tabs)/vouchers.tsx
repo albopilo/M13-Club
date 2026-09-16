@@ -12,11 +12,13 @@ import {
 import { Ticket, CheckCircle, X, Gift } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 
 export default function VouchersScreen() {
   const { member, refreshMember } = useAuth();
+  const { t } = useLanguage();
   const [showRedeem, setShowRedeem] = useState(false);
   const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
@@ -34,11 +36,11 @@ export default function VouchersScreen() {
     } else if (data) {
       const r = data as { success: boolean; error?: string; amount?: number };
       if (r.success) {
-        setResult({ success: true, message: `MC ${r.amount} added to your wallet!` });
+        setResult({ success: true, message: t('vouchers.addedSuccess', { amount: r.amount ?? 0 }) });
         setCode('');
         refreshMember();
       } else {
-        setResult({ success: false, message: r.error || 'Redemption failed' });
+        setResult({ success: false, message: r.error || t('vouchers.redemptionFailed') });
       }
     }
   };
@@ -50,8 +52,8 @@ export default function VouchersScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Vouchers</Text>
-        <Text style={styles.pageSubtitle}>Redeem a code to add credit to your wallet</Text>
+        <Text style={styles.pageTitle}>{t('vouchers.title')}</Text>
+        <Text style={styles.pageSubtitle}>{t('vouchers.subtitle')}</Text>
       </View>
 
       <LinearGradient
@@ -61,9 +63,9 @@ export default function VouchersScreen() {
         <View style={styles.heroIcon}>
           <Gift size={32} color={Colors.neutral[0]} strokeWidth={2} />
         </View>
-        <Text style={styles.heroTitle}>Have a voucher code?</Text>
+        <Text style={styles.heroTitle}>{t('vouchers.haveCode')}</Text>
         <Text style={styles.heroDesc}>
-          Enter your code to instantly add credit to your M13 Club wallet.
+          {t('vouchers.heroDesc')}
         </Text>
         <TouchableOpacity
           style={styles.heroButton}
@@ -71,23 +73,23 @@ export default function VouchersScreen() {
           activeOpacity={0.85}
         >
           <Ticket size={20} color={Colors.accent[700]} strokeWidth={2} />
-          <Text style={styles.heroButtonText}>Redeem a Code</Text>
+          <Text style={styles.heroButtonText}>{t('vouchers.redeemCode')}</Text>
         </TouchableOpacity>
       </LinearGradient>
 
       <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>How it works</Text>
+        <Text style={styles.infoTitle}>{t('vouchers.howItWorks')}</Text>
         <View style={styles.infoStep}>
           <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
-          <Text style={styles.stepText}>Receive a voucher code from M13 Club promotions or staff.</Text>
+          <Text style={styles.stepText}>{t('vouchers.step1')}</Text>
         </View>
         <View style={styles.infoStep}>
           <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
-          <Text style={styles.stepText}>Tap "Redeem a Code" and enter your code.</Text>
+          <Text style={styles.stepText}>{t('vouchers.step2')}</Text>
         </View>
         <View style={styles.infoStep}>
           <View style={styles.stepNumber}><Text style={styles.stepNumberText}>3</Text></View>
-          <Text style={styles.stepText}>Credit is added to your wallet instantly.</Text>
+          <Text style={styles.stepText}>{t('vouchers.step3')}</Text>
         </View>
       </View>
 
@@ -100,16 +102,16 @@ export default function VouchersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Redeem Voucher</Text>
+              <Text style={styles.modalTitle}>{t('vouchers.redeemVoucher')}</Text>
               <TouchableOpacity onPress={() => setShowRedeem(false)}>
                 <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalLabel}>Enter Voucher Code</Text>
+            <Text style={styles.modalLabel}>{t('vouchers.enterCode')}</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="e.g. WELCOME50"
+              placeholder={t('vouchers.codePlaceholder')}
               placeholderTextColor={Colors.neutral[400]}
               value={code}
               onChangeText={setCode}
@@ -139,7 +141,7 @@ export default function VouchersScreen() {
               {redeeming ? (
                 <ActivityIndicator color={Colors.neutral[0]} />
               ) : (
-                <Text style={styles.modalButtonText}>Redeem Now</Text>
+                <Text style={styles.modalButtonText}>{t('vouchers.redeemNow')}</Text>
               )}
             </TouchableOpacity>
           </View>

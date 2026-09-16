@@ -20,12 +20,14 @@ import {
   WebSidebar,
   SIDEBAR_WIDTH,
 } from '@/components/WebSidebar';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function TabLayout() {
   const { user, member, loading } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { showSidebar } = useResponsive();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -89,7 +91,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="index"
             options={{
-              title: 'Home',
+              title: t('tab.home'),
               tabBarIcon: ({ size, color }) => (
                 <Home
                   size={size}
@@ -104,7 +106,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="wallet"
             options={{
-              title: 'Wallet',
+              title: t('tab.wallet'),
               tabBarIcon: ({ size, color }) => (
                 <Wallet
                   size={size}
@@ -119,7 +121,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="payment"
             options={{
-              title: 'Payment',
+              title: t('tab.payment'),
               tabBarIcon: ({ size, color }) => (
                 <CreditCard
                   size={size}
@@ -134,7 +136,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="vouchers"
             options={{
-              title: 'Vouchers',
+              title: t('tab.vouchers'),
               tabBarIcon: ({ size, color }) => (
                 <Ticket
                   size={size}
@@ -149,7 +151,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="sales"
             options={{
-              title: 'Sales',
+              title: t('tab.sales'),
               tabBarIcon: ({ size, color }) => (
                 <ShoppingCart
                   size={size}
@@ -167,7 +169,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="payment-logs"
             options={{
-              title: 'Logs',
+              title: t('tab.logs'),
               tabBarIcon: ({ size, color }) => (
                 <Receipt
                   size={size}
@@ -185,7 +187,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="profile"
             options={{
-              title: 'Profile',
+              title: t('tab.profile'),
               tabBarIcon: ({ size, color }) => (
                 <UserIcon
                   size={size}
@@ -199,7 +201,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="admin"
             options={{
-              title: 'Admin',
+              title: t('tab.admin'),
               tabBarIcon: ({ size, color }) => (
                 <Shield
                   size={size}

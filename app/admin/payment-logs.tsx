@@ -13,6 +13,7 @@ import { useFocusEffect, router } from 'expo-router';
 import { ArrowLeft, Receipt, Store, TrendingDown, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface PaymentLog {
   id: string;
@@ -27,6 +28,7 @@ interface PaymentLog {
 }
 
 export default function AdminPaymentLogsScreen() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<PaymentLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,8 +64,8 @@ export default function AdminPaymentLogsScreen() {
           <ArrowLeft size={22} color={Colors.neutral[700]} strokeWidth={2} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.pageTitle}>Payment Logs</Text>
-          <Text style={styles.pageSubtitle}>All member payment transactions</Text>
+          <Text style={styles.pageTitle}>{t('logs.title')}</Text>
+          <Text style={styles.pageSubtitle}>{t('logs.subtitle')}</Text>
         </View>
       </View>
 
@@ -72,8 +74,8 @@ export default function AdminPaymentLogsScreen() {
       ) : logs.length === 0 ? (
         <View style={styles.emptyState}>
           <Receipt size={40} color={Colors.neutral[300]} strokeWidth={1.5} />
-          <Text style={styles.emptyText}>No payment logs yet</Text>
-          <Text style={styles.emptySubtext}>Payment transactions will appear here</Text>
+          <Text style={styles.emptyText}>{t('logs.noLogs')}</Text>
+          <Text style={styles.emptySubtext}>{t('logs.noLogsDesc')}</Text>
         </View>
       ) : (
         <FlatList
@@ -101,7 +103,7 @@ export default function AdminPaymentLogsScreen() {
               </View>
               <View style={styles.logAmountCol}>
                 <Text style={styles.logAmount}>- MC {Math.round(Number(item.amount))}</Text>
-                <Text style={styles.logBalance}>Bal: MC {Math.round(Number(item.balance_after))}</Text>
+                <Text style={styles.logBalance}>{t('logs.bal', { amount: Math.round(Number(item.balance_after)) })}</Text>
               </View>
             </View>
           )}

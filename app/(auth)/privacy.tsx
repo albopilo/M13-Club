@@ -16,8 +16,10 @@ import {
 } from "@/content/privacy-policy";
 
 import { Colors, FontFamily } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function PrivacyScreen() {
+  const { t } = useLanguage();
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -32,7 +34,7 @@ export default function PrivacyScreen() {
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>
-          Privacy Policy
+          {t('privacy.title')}
         </Text>
       </View>
 
@@ -44,8 +46,7 @@ export default function PrivacyScreen() {
         </Text>
 
         <Text style={styles.meta}>
-          Version {PRIVACY_VERSION} • Last updated{" "}
-          {PRIVACY_LAST_UPDATED}
+          {t('privacy.meta', { version: PRIVACY_VERSION, date: PRIVACY_LAST_UPDATED })}
         </Text>
 
         {PRIVACY_SECTIONS.map((section) => (

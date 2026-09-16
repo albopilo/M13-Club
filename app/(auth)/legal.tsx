@@ -17,6 +17,7 @@ import {
   BorderRadius,
   Shadows,
 } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 
 import { useAuth } from "@/context/AuthContext";
 import { recordTermsAcceptance } from "@/lib/terms";
@@ -26,6 +27,7 @@ export default function LegalAcceptanceScreen() {
     user,
     refreshTermsAcceptance,
   } = useAuth();
+  const { t } = useLanguage();
 
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,14 +43,14 @@ export default function LegalAcceptanceScreen() {
   const handleAccept = async () => {
     if (!accepted) {
       setError(
-        "Please agree to the M13 Club Terms & Conditions and Privacy Policy."
+        t('legal.errorAgree')
       );
       return;
     }
 
     if (!user?.id) {
       setError(
-        "Unable to identify your account. Please sign in again."
+        t('legal.errorAccount')
       );
       return;
     }
@@ -87,7 +89,7 @@ export default function LegalAcceptanceScreen() {
 
       if (!refreshed.accepted) {
         setError(
-          "Your legal acceptance could not be verified. Please try again."
+          t('legal.errorVerify')
         );
         return;
       }
@@ -103,7 +105,7 @@ export default function LegalAcceptanceScreen() {
       setError(
         e instanceof Error
           ? e.message
-          : "Unable to save your legal acceptance. Please try again."
+          : t('legal.errorSave')
       );
     } finally {
       setLoading(false);
@@ -143,12 +145,11 @@ export default function LegalAcceptanceScreen() {
           </View>
 
           <Text style={styles.title}>
-            Before You Continue
+            {t('legal.beforeContinue')}
           </Text>
 
           <Text style={styles.subtitle}>
-            Please review and accept the M13 Club Terms &
-            Conditions and Privacy Policy.
+            {t('legal.subtitle')}
           </Text>
         </View>
 
@@ -162,13 +163,11 @@ export default function LegalAcceptanceScreen() {
           )}
 
           <Text style={styles.heading}>
-            Legal Agreement
+            {t('legal.heading')}
           </Text>
 
           <Text style={styles.description}>
-            To use M13 Club, you must read and agree to our
-            Terms & Conditions and acknowledge our Privacy
-            Policy.
+            {t('legal.description')}
           </Text>
 
           <TouchableOpacity
@@ -176,16 +175,15 @@ export default function LegalAcceptanceScreen() {
             onPress={openTerms}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Open M13 Club Terms and Conditions"
+            accessibilityLabel={t('legal.openTerms')}
           >
             <View style={styles.documentTextContainer}>
               <Text style={styles.documentTitle}>
-                M13 Club Terms & Conditions
+                {t('legal.termsTitle')}
               </Text>
 
               <Text style={styles.documentSubtitle}>
-                Rules for using your account, MC, vouchers,
-                transactions, and M13 Club services.
+                {t('legal.termsDesc')}
               </Text>
             </View>
 
@@ -201,16 +199,15 @@ export default function LegalAcceptanceScreen() {
             onPress={openPrivacy}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Open M13 Club Privacy Policy"
+            accessibilityLabel={t('legal.openPrivacy')}
           >
             <View style={styles.documentTextContainer}>
               <Text style={styles.documentTitle}>
-                M13 Club Privacy Policy
+                {t('legal.privacyTitle')}
               </Text>
 
               <Text style={styles.documentSubtitle}>
-                How M13 collects, uses, stores, and protects
-                your personal information.
+                {t('legal.privacyDesc')}
               </Text>
             </View>
 
@@ -251,9 +248,7 @@ export default function LegalAcceptanceScreen() {
             </View>
 
             <Text style={styles.checkboxText}>
-              I have read and agree to the M13 Club Terms &
-              Conditions and acknowledge the M13 Club
-              Privacy Policy.
+              {t('legal.checkboxText')}
             </Text>
           </TouchableOpacity>
 
@@ -277,13 +272,13 @@ export default function LegalAcceptanceScreen() {
               />
             ) : (
               <Text style={styles.acceptButtonText}>
-                Accept & Continue
+                {t('legal.accept')}
               </Text>
             )}
           </TouchableOpacity>
 
           <Text style={styles.versionText}>
-            Terms and Privacy Policy version 1.0
+            {t('legal.version')}
           </Text>
         </View>
       </ScrollView>

@@ -23,25 +23,19 @@ import {
   Check,
   X,
   Shield,
+  Globe,
 } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { LANGUAGES } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const ROLE_LABELS: Record<string, string> = {
-  member: 'Member',
-  admin: 'Administrator',
-  super_admin: 'Super Administrator',
-  staff: 'Staff',
-  finance: 'Finance',
-  manager: 'Manager',
-  support: 'Support',
-};
-
 export default function ProfileScreen() {
   const { member, signOut, refreshMember } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,7 +74,7 @@ export default function ProfileScreen() {
     setSaving(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('profile.error'), error.message);
     } else {
       await refreshMember();
       setEditing(false);
@@ -88,15 +82,21 @@ export default function ProfileScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
+    Alert.alert(t('profile.signOut'), t('profile.signOutConfirm'), [
+      { text: t('profile.cancel'), style: 'cancel' },
+      { text: t('profile.signOutBtn'), style: 'destructive', onPress: () => signOut() },
     ]);
   };
 
   const formatDate = (d: string) => {
-    if (!d) return 'Not set';
+    if (!d) return t('profile.notSet');
     return new Date(d).toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const roleLabel = (role: string) => {
+    const key = `profile.role.${role || 'member'}`;
+    const translated = t(key);
+    return translated === key ? t('profile.role.member') : translated;
   };
 
   return (
@@ -120,18 +120,43 @@ export default function ProfileScreen() {
         <Text style={styles.profileName}>{member?.full_name}</Text>
         <View style={styles.roleBadge}>
           <Shield size={12} color={Colors.neutral[0]} strokeWidth={2} />
-          <Text style={styles.roleText}>{ROLE_LABELS[member?.role || 'member'] || 'Member'}</Text>
+          <Text style={styles.roleText}>{roleLabel(member?.role || 'member')}</Text>
         </View>
         <Text style={styles.memberNumber}>{member?.member_number}</Text>
       </LinearGradient>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+        <View style={styles.languageRow}>
+          {LANGUAGES.map((lang) => (
+            <TouchableOpacity
+              key={lang.code}
+              style={[
+                styles.languageBtn,
+                language === lang.code && styles.languageBtnActive,
+              ]}
+              onPress={() => setLanguage(lang.code)}
+              activeOpacity={0.85}
+            >
+              <Globe size={16} color={language === lang.code ? Colors.neutral[0] : Colors.neutral[500]} strokeWidth={2} />
+              <Text style={[
+                styles.languageBtnText,
+                language === lang.code && styles.languageBtnTextActive,
+              ]}>
+                {lang.nativeLabel}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
           {!editing ? (
             <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>
               <Edit3 size={16} color={Colors.primary[700]} strokeWidth={2} />
-              <Text style={styles.editButtonText}>Edit</Text>
+              <Text style={styles.editButtonText}>{t('profile.edit')}</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.editActions}>
@@ -152,23 +177,23 @@ export default function ProfileScreen() {
         <View style={styles.infoCard}>
           {editing ? (
             <>
-              <EditField label="Full Name" icon={UserIcon} value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
-              <EditField label="Phone" icon={Phone} value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} keyboardType="phone-pad" />
-              <EditField label="Date of Birth (YYYY-MM-DD)" icon={Calendar} value={form.date_of_birth} onChange={(v) => setForm({ ...form, date_of_birth: v })} />
-              <EditField label="Gender (male/female/other)" icon={UserIcon} value={form.gender} onChange={(v) => setForm({ ...form, gender: v })} />
-              <EditField label="Address" icon={MapPin} value={form.address} onChange={(v) => setForm({ ...form, address: v })} multiline />
-              <EditField label="Emergency Contact Name" icon={Heart} value={form.emergency_contact_name} onChange={(v) => setForm({ ...form, emergency_contact_name: v })} />
-              <EditField label="Emergency Contact Phone" icon={Phone} value={form.emergency_contact_phone} onChange={(v) => setForm({ ...form, emergency_contact_phone: v })} keyboardType="phone-pad" />
+              <EditField label={t('profile.fullName')} icon={UserIcon} value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
+              <EditField label={t('profile.phone')} icon={Phone} value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} keyboardType="phone-pad" />
+              <EditField label={t('profile.dobEdit')} icon={Calendar} value={form.date_of_birth} onChange={(v) => setForm({ ...form, date_of_birth: v })} />
+              <EditField label={t('profile.genderEdit')} icon={UserIcon} value={form.gender} onChange={(v) => setForm({ ...form, gender: v })} />
+              <EditField label={t('profile.address')} icon={MapPin} value={form.address} onChange={(v) => setForm({ ...form, address: v })} multiline />
+              <EditField label={t('profile.emergencyName')} icon={Heart} value={form.emergency_contact_name} onChange={(v) => setForm({ ...form, emergency_contact_name: v })} />
+              <EditField label={t('profile.emergencyPhone')} icon={Phone} value={form.emergency_contact_phone} onChange={(v) => setForm({ ...form, emergency_contact_phone: v })} keyboardType="phone-pad" />
             </>
           ) : (
             <>
-              <InfoRow icon={Mail} label="Email" value={member?.email || 'Not set'} />
-              <InfoRow icon={Phone} label="Phone" value={member?.phone || 'Not set'} />
-              <InfoRow icon={Calendar} label="Date of Birth" value={formatDate(member?.date_of_birth || '')} />
-              <InfoRow icon={UserIcon} label="Gender" value={member?.gender ? member.gender.charAt(0).toUpperCase() + member.gender.slice(1) : 'Not set'} />
-              <InfoRow icon={MapPin} label="Address" value={member?.address || 'Not set'} />
-              <InfoRow icon={Calendar} label="Joined" value={formatDate(member?.joined_at || '')} />
-              <InfoRow icon={Heart} label="Emergency Contact" value={member?.emergency_contact_name ? `${member.emergency_contact_name} (${member.emergency_contact_phone || 'No phone'})` : 'Not set'} />
+              <InfoRow icon={Mail} label={t('profile.email')} value={member?.email || t('profile.notSet')} />
+              <InfoRow icon={Phone} label={t('profile.phone')} value={member?.phone || t('profile.notSet')} />
+              <InfoRow icon={Calendar} label={t('profile.dob')} value={formatDate(member?.date_of_birth || '')} />
+              <InfoRow icon={UserIcon} label={t('profile.gender')} value={member?.gender ? member.gender.charAt(0).toUpperCase() + member.gender.slice(1) : t('profile.notSet')} />
+              <InfoRow icon={MapPin} label={t('profile.address')} value={member?.address || t('profile.notSet')} />
+              <InfoRow icon={Calendar} label={t('profile.joined')} value={formatDate(member?.joined_at || '')} />
+              <InfoRow icon={Heart} label={t('profile.emergency')} value={member?.emergency_contact_name ? `${member.emergency_contact_name} (${member.emergency_contact_phone || t('profile.noPhone')})` : t('profile.notSet')} />
             </>
           )}
         </View>
@@ -176,7 +201,7 @@ export default function ProfileScreen() {
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.85}>
         <LogOut size={20} color={Colors.error[600]} strokeWidth={2} />
-        <Text style={styles.signOutText}>Sign Out</Text>
+        <Text style={styles.signOutText}>{t('profile.signOut')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -293,6 +318,36 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.neutral[900],
   },
+  languageRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  marginTop: Spacing.sm,
+  marginBottom: Spacing.xs,
+  flexWrap: 'wrap',
+  },
+  languageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.neutral[200],
+    backgroundColor: Colors.neutral[0],
+  },
+  languageBtnActive: {
+    borderColor: Colors.primary[700],
+    backgroundColor: Colors.primary[700],
+  },
+  languageBtnText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 14,
+    color: Colors.neutral[700],
+  },
+  languageBtnTextActive: {
+    color: Colors.neutral[0],
+  },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,7 +441,7 @@ signOutButton: {
 
   marginHorizontal: Spacing.lg,
   marginTop: Spacing.lg,
-  marginBottom: 40, // some breathing room
+  marginBottom: 40,
 
   borderWidth: 1.5,
   borderColor: Colors.error[300],

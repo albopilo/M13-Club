@@ -5,20 +5,22 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { Search, ArrowLeft, Users, Mail, Phone, Shield, Wallet, X, Check } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { supabase, Member, MemberRole } from '@/lib/supabase';
 import { isSuperAdminRole } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
-
-const ROLE_LABELS: Record<string, string> = {
-  member: 'Member', admin: 'Admin', super_admin: 'Super Admin',
-  staff: 'Staff', finance: 'Finance', manager: 'Manager', support: 'Support',
-};
 
 const ROLES: MemberRole[] = ['member', 'admin', 'super_admin', 'staff', 'finance', 'manager', 'support'];
 
 export default function AdminMembersScreen() {
   const { member: currentMember } = useAuth();
+  const { t } = useLanguage();
   const [members, setMembers] = useState<Member[]>([]);
+
+  const ROLE_LABELS: Record<string, string> = {
+    member: t('profile.role.member'), admin: t('adminMembers.roleAdmin'), super_admin: t('adminMembers.roleSuperAdmin'),
+    staff: t('profile.role.staff'), finance: t('profile.role.finance'), manager: t('profile.role.manager'), support: t('profile.role.support'),
+  };
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -83,14 +85,14 @@ export default function AdminMembersScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={22} color={Colors.neutral[0]} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Members</Text>
+        <Text style={styles.headerTitle}>{t('adminMembers.title')}</Text>
       </View>
 
       <View style={styles.searchBar}>
         <Search size={18} color={Colors.neutral[400]} strokeWidth={2} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, email, or member ID..."
+          placeholder={t('adminMembers.search')}
           placeholderTextColor={Colors.neutral[400]}
           value={search}
           onChangeText={setSearch}
@@ -106,7 +108,7 @@ export default function AdminMembersScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
             <Users size={32} color={Colors.neutral[300]} strokeWidth={1.5} />
-            <Text style={styles.emptyText}>{loading ? 'Loading...' : 'No members found'}</Text>
+            <Text style={styles.emptyText}>{loading ? t('adminMembers.loading') : t('adminMembers.none')}</Text>
           </View>
         )}
         renderItem={({ item }) => (
@@ -139,20 +141,20 @@ export default function AdminMembersScreen() {
             {selected && (
               <>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Member Details</Text>
+                  <Text style={styles.modalTitle}>{t('adminMembers.details')}</Text>
                   <TouchableOpacity onPress={() => setSelected(null)}>
                     <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.detailSection}>
-                  <DetailRow icon={Users} label="Name" value={selected.full_name} />
-                  <DetailRow icon={Mail} label="Email" value={selected.email} />
-                  <DetailRow icon={Phone} label="Phone" value={selected.phone || 'Not set'} />
-                  <DetailRow icon={Shield} label="Role" value={ROLE_LABELS[selected.role]} />
-                  <DetailRow icon={Shield} label="Status" value={selected.status} />
-                  <DetailRow icon={Users} label="Member ID" value={selected.member_number} />
-                  <DetailRow icon={Wallet} label="Joined" value={new Date(selected.joined_at).toLocaleDateString()} />
+                  <DetailRow icon={Users} label={t('adminMembers.name')} value={selected.full_name} />
+                  <DetailRow icon={Mail} label={t('adminMembers.email')} value={selected.email} />
+                  <DetailRow icon={Phone} label={t('adminMembers.phone')} value={selected.phone || t('profile.notSet')} />
+                  <DetailRow icon={Shield} label={t('adminMembers.role')} value={ROLE_LABELS[selected.role]} />
+                  <DetailRow icon={Shield} label={t('adminMembers.status')} value={selected.status} />
+                  <DetailRow icon={Users} label={t('adminMembers.memberId')} value={selected.member_number} />
+                  <DetailRow icon={Wallet} label={t('adminMembers.joined')} value={new Date(selected.joined_at).toLocaleDateString()} />
                 </View>
 
                 {actionError && (
@@ -163,7 +165,7 @@ export default function AdminMembersScreen() {
 
                 {isSuperAdminRole(currentMember?.role) && selected.user_id !== currentMember?.user_id && (
                   <View style={styles.actionSection}>
-                    <Text style={styles.actionLabel}>Change Role</Text>
+                    <Text style={styles.actionLabel}>{t('adminMembers.changeRole')}</Text>
                     <View style={styles.roleOptions}>
                       {ROLES.map(r => (
                         <TouchableOpacity
@@ -179,7 +181,7 @@ export default function AdminMembersScreen() {
                       ))}
                     </View>
 
-                    <Text style={[styles.actionLabel, { marginTop: Spacing.md }]}>Change Status</Text>
+                    <Text style={[styles.actionLabel, { marginTop: Spacing.md }]}>{t('adminMembers.changeStatus')}</Text>
                     <View style={styles.statusOptions}>
                       <TouchableOpacity
                         style={[styles.statusBtn, { backgroundColor: Colors.success[50] }]}
@@ -187,21 +189,21 @@ export default function AdminMembersScreen() {
                         disabled={actionLoading}
                       >
                         <Check size={16} color={Colors.success[700]} strokeWidth={2} />
-                        <Text style={[styles.statusBtnText, { color: Colors.success[700] }]}>Active</Text>
+                        <Text style={[styles.statusBtnText, { color: Colors.success[700] }]}>{t('adminMembers.active')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.statusBtn, { backgroundColor: Colors.warning[50] }]}
                         onPress={() => updateStatus(selected.id, 'suspended')}
                         disabled={actionLoading}
                       >
-                        <Text style={[styles.statusBtnText, { color: Colors.warning[700] }]}>Suspend</Text>
+                        <Text style={[styles.statusBtnText, { color: Colors.warning[700] }]}>{t('adminMembers.suspend')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.statusBtn, { backgroundColor: Colors.error[50] }]}
                         onPress={() => updateStatus(selected.id, 'banned')}
                         disabled={actionLoading}
                       >
-                        <Text style={[styles.statusBtnText, { color: Colors.error[700] }]}>Ban</Text>
+                        <Text style={[styles.statusBtnText, { color: Colors.error[700] }]}>{t('adminMembers.ban')}</Text>
                       </TouchableOpacity>
                     </View>
                     {actionLoading && <ActivityIndicator color={Colors.primary[600]} style={{ marginTop: Spacing.sm }} />}

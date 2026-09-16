@@ -15,8 +15,10 @@ import { useFocusEffect, router } from 'expo-router';
 import { Store, ArrowLeft, Plus, Edit3, Trash2, Check, X, MapPin } from 'lucide-react-native';
 import { supabase, Branch } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AdminBranchesScreen() {
+  const { t } = useLanguage();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +43,7 @@ export default function AdminBranchesScreen() {
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      Alert.alert('Error', 'Branch name is required');
+      Alert.alert(t('adminBranches.error'), t('adminBranches.nameRequired'));
       return;
     }
     setSaving(true);
@@ -50,25 +52,25 @@ export default function AdminBranchesScreen() {
         .from('branches')
         .update({ name: form.name.trim(), address: form.address.trim() || null, updated_at: new Date().toISOString() })
         .eq('id', editing.id);
-      if (error) Alert.alert('Error', error.message);
+      if (error) Alert.alert(t('adminBranches.error'), error.message);
       else { setShowForm(false); setEditing(null); fetchBranches(); }
     } else {
       const { error } = await supabase
         .from('branches')
         .insert({ name: form.name.trim(), address: form.address.trim() || null });
-      if (error) Alert.alert('Error', error.message);
+      if (error) Alert.alert(t('adminBranches.error'), error.message);
       else { setShowForm(false); fetchBranches(); }
     }
     setSaving(false);
   };
 
   const handleDelete = (branch: Branch) => {
-    Alert.alert('Delete Branch', `Are you sure you want to delete "${branch.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('adminBranches.delete'), t('adminBranches.deleteConfirm', { name: branch.name }), [
+      { text: t('adminBranches.cancel'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive', onPress: async () => {
+        text: t('adminBranches.deleteBtn'), style: 'destructive', onPress: async () => {
           const { error } = await supabase.from('branches').update({ is_active: false }).eq('id', branch.id);
-          if (error) Alert.alert('Error', error.message);
+          if (error) Alert.alert(t('adminBranches.error'), error.message);
           else fetchBranches();
         }
       },
@@ -90,8 +92,8 @@ export default function AdminBranchesScreen() {
           <ArrowLeft size={22} color={Colors.neutral[700]} strokeWidth={2} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.pageTitle}>Branch Stores</Text>
-          <Text style={styles.pageSubtitle}>Create and manage branch locations</Text>
+          <Text style={styles.pageTitle}>{t('adminBranches.title')}</Text>
+          <Text style={styles.pageSubtitle}>{t('adminBranches.subtitle')}</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
           <Plus size={22} color={Colors.primary[700]} strokeWidth={2} />
@@ -100,19 +102,19 @@ export default function AdminBranchesScreen() {
 
       {showForm && (
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>{editing ? 'Edit Branch' : 'New Branch'}</Text>
-          <Text style={styles.fieldLabel}>Branch Name</Text>
+          <Text style={styles.formTitle}>{editing ? t('adminBranches.edit') : t('adminBranches.new')}</Text>
+          <Text style={styles.fieldLabel}>{t('adminBranches.name')}</Text>
           <TextInput
             style={styles.fieldInput}
-            placeholder="e.g. M13 Branch KL"
+            placeholder={t('adminBranches.namePlaceholder')}
             placeholderTextColor={Colors.neutral[400]}
             value={form.name}
             onChangeText={(v) => setForm({ ...form, name: v })}
           />
-          <Text style={styles.fieldLabel}>Address (optional)</Text>
+          <Text style={styles.fieldLabel}>{t('adminBranches.address')}</Text>
           <TextInput
             style={[styles.fieldInput, { height: 70, textAlignVertical: 'top' }]}
-            placeholder="Branch address"
+            placeholder={t('adminBranches.addressPlaceholder')}
             placeholderTextColor={Colors.neutral[400]}
             value={form.address}
             onChangeText={(v) => setForm({ ...form, address: v })}
@@ -124,7 +126,7 @@ export default function AdminBranchesScreen() {
               onPress={() => { setShowForm(false); setEditing(null); }}
             >
               <X size={18} color={Colors.neutral[500]} strokeWidth={2} />
-              <Text style={styles.cancelBtnText}>Cancel</Text>
+              <Text style={styles.cancelBtnText}>{t('adminBranches.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.saveBtn}
@@ -132,7 +134,7 @@ export default function AdminBranchesScreen() {
               disabled={saving}
             >
               {saving ? <ActivityIndicator size={18} color={Colors.neutral[0]} /> : <Check size={18} color={Colors.neutral[0]} strokeWidth={2} />}
-              <Text style={styles.saveBtnText}>{editing ? 'Update' : 'Create'}</Text>
+              <Text style={styles.saveBtnText}>{editing ? t('adminBranches.update') : t('adminBranches.create')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -143,8 +145,8 @@ export default function AdminBranchesScreen() {
       ) : branches.length === 0 ? (
         <View style={styles.emptyState}>
           <Store size={40} color={Colors.neutral[300]} strokeWidth={1.5} />
-          <Text style={styles.emptyText}>No branches yet</Text>
-          <Text style={styles.emptySubtext}>Tap the + button to create one</Text>
+          <Text style={styles.emptyText}>{t('adminBranches.none')}</Text>
+          <Text style={styles.emptySubtext}>{t('adminBranches.noneDesc')}</Text>
         </View>
       ) : (
         <FlatList
@@ -166,7 +168,7 @@ export default function AdminBranchesScreen() {
                 ) : null}
                 <View style={[styles.statusBadge, item.is_active ? styles.statusActive : styles.statusInactive]}>
                   <Text style={[styles.statusText, item.is_active ? styles.statusTextActive : styles.statusTextInactive]}>
-                    {item.is_active ? 'Active' : 'Inactive'}
+                    {item.is_active ? t('adminBranches.active') : t('adminBranches.inactive')}
                   </Text>
                 </View>
               </View>

@@ -14,10 +14,12 @@ import * as Clipboard from "expo-clipboard";
 import { supabase } from "@/lib/supabase";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SalesScreen() {
   const { member } = useAuth();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
@@ -96,7 +98,7 @@ export default function SalesScreen() {
 
     if (error) {
       setShowConfirmModal(false);
-      Alert.alert("Unable to Sell Voucher", error.message);
+      Alert.alert(t('sales.unableSell'), error.message);
       return;
     }
 
@@ -150,7 +152,7 @@ export default function SalesScreen() {
         <ActivityIndicator size="large" color="#0A6EFF" />
 
         <Text style={styles.loadingText}>
-          Loading vouchers...
+          {t('sales.loading')}
         </Text>
       </View>
     );
@@ -190,7 +192,7 @@ export default function SalesScreen() {
                   <View style={styles.availableDot} />
 
                   <Text style={styles.availableText}>
-                    AVAILABLE
+                    {t('sales.available')}
                   </Text>
                 </View>
               </View>
@@ -199,7 +201,7 @@ export default function SalesScreen() {
             {/* Voucher value */}
             <View style={styles.valueContainer}>
               <Text style={styles.valueLabel}>
-                Voucher Value
+                {t('sales.voucherValue')}
               </Text>
 
               <Text style={styles.value}>
@@ -214,7 +216,7 @@ export default function SalesScreen() {
               onPress={() => confirmSell(item)}
             >
               <Text style={styles.sellText}>
-                Sell Voucher
+                {t('sales.sellVoucher')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -228,12 +230,11 @@ export default function SalesScreen() {
             </View>
 
             <Text style={styles.emptyTitle}>
-              No Vouchers Available
+              {t('sales.noVouchers')}
             </Text>
 
             <Text style={styles.emptyText}>
-              There are currently no active vouchers
-              available for sale.
+              {t('sales.noVouchersDesc')}
             </Text>
           </View>
         }
@@ -267,12 +268,11 @@ export default function SalesScreen() {
                   </View>
 
                   <Text style={styles.modalTitle}>
-                    Sell Voucher
+                    {t('sales.sellVoucherModal')}
                   </Text>
 
                   <Text style={styles.modalSubtitle}>
-                    Review this voucher before completing
-                    the sale.
+                    {t('sales.reviewBefore')}
                   </Text>
                 </View>
 
@@ -301,13 +301,11 @@ export default function SalesScreen() {
 
                   <View style={styles.warningContent}>
                     <Text style={styles.warningTitle}>
-                      This action cannot be undone
+                      {t('sales.cannotUndo')}
                     </Text>
 
                     <Text style={styles.warningText}>
-                      After confirmation, this voucher will
-                      be marked as SOLD and its code will be
-                      revealed.
+                      {t('sales.cannotUndoDesc')}
                     </Text>
                   </View>
                 </View>
@@ -315,7 +313,7 @@ export default function SalesScreen() {
                 {/* What happens */}
                 <View style={styles.infoSection}>
                   <Text style={styles.infoSectionTitle}>
-                    After confirmation
+                    {t('sales.afterConfirm')}
                   </Text>
 
                   <View style={styles.infoRow}>
@@ -326,7 +324,7 @@ export default function SalesScreen() {
                     </View>
 
                     <Text style={styles.infoText}>
-                      Voucher becomes SOLD
+                      {t('sales.voucherSold')}
                     </Text>
                   </View>
 
@@ -338,7 +336,7 @@ export default function SalesScreen() {
                     </View>
 
                     <Text style={styles.infoText}>
-                      Sale is recorded
+                      {t('sales.saleRecorded')}
                     </Text>
                   </View>
 
@@ -350,7 +348,7 @@ export default function SalesScreen() {
                     </View>
 
                     <Text style={styles.infoText}>
-                      Voucher code is revealed
+                      {t('sales.codeRevealed')}
                     </Text>
                   </View>
                 </View>
@@ -368,7 +366,7 @@ export default function SalesScreen() {
                     }}
                   >
                     <Text style={styles.cancelText}>
-                      Cancel
+                      {t('sales.cancel')}
                     </Text>
                   </Pressable>
 
@@ -384,7 +382,7 @@ export default function SalesScreen() {
                     }}
                   >
                     <Text style={styles.confirmText}>
-                      Sell & Reveal
+                      {t('sales.sellReveal')}
                     </Text>
                   </Pressable>
                 </View>
@@ -402,11 +400,11 @@ export default function SalesScreen() {
                 </View>
 
                 <Text style={styles.processingTitle}>
-                  Selling Voucher...
+                  {t('sales.selling')}
                 </Text>
 
                 <Text style={styles.processingText}>
-                  Please wait while we record the sale.
+                  {t('sales.sellingDesc')}
                 </Text>
 
                 <Text style={styles.processingVoucher}>
@@ -439,11 +437,11 @@ export default function SalesScreen() {
               </View>
 
               <Text style={styles.successTitle}>
-                Voucher Sold
+                {t('sales.voucherSoldTitle')}
               </Text>
 
               <Text style={styles.successSubtitle}>
-                The sale has been recorded successfully.
+                {t('sales.saleSuccess')}
               </Text>
             </View>
 
@@ -465,7 +463,7 @@ export default function SalesScreen() {
             {/* Voucher code */}
             <View style={styles.codeSection}>
               <Text style={styles.codeLabel}>
-                VOUCHER CODE
+                {t('sales.voucherCode')}
               </Text>
 
               <View style={styles.codeContainer}>
@@ -491,7 +489,7 @@ export default function SalesScreen() {
                       copied && styles.copyTextCopied,
                     ]}
                   >
-                    {copied ? "Copied" : "Copy"}
+                    {copied ? t('sales.copied') : t('sales.copy')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -506,8 +504,7 @@ export default function SalesScreen() {
               </View>
 
               <Text style={styles.instructionText}>
-                Please provide this voucher code to the
-                customer.
+                {t('sales.provideCode')}
               </Text>
             </View>
 
@@ -520,7 +517,7 @@ export default function SalesScreen() {
               </View>
 
               <Text style={styles.recordedText}>
-                Sale recorded successfully
+                {t('sales.saleRecordedSuccess')}
               </Text>
             </View>
 
@@ -531,7 +528,7 @@ export default function SalesScreen() {
               onPress={finishSale}
             >
               <Text style={styles.doneText}>
-                Done
+                {t('sales.done')}
               </Text>
             </TouchableOpacity>
           </View>

@@ -14,12 +14,14 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { CreditCard, MapPin, CheckCircle, X, Store, Wallet, Shield } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { supabase, Branch, Wallet as WalletType } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function PaymentScreen() {
   const { member, refreshMember } = useAuth();
+  const { t } = useLanguage();
   const [wallet, setWallet] = useState<WalletType | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [amount, setAmount] = useState('');
@@ -52,15 +54,15 @@ export default function PaymentScreen() {
   const handlePayPress = () => {
     setResult(null);
     if (!amount.trim() || enteredAmount <= 0) {
-      setResult({ success: false, message: 'Please enter a valid amount' });
+      setResult({ success: false, message: t('payment.invalidAmount') });
       return;
     }
     if (!selectedBranch) {
-      setResult({ success: false, message: 'Please select a branch store' });
+      setResult({ success: false, message: t('payment.selectBranch') });
       return;
     }
     if (enteredAmount > balance) {
-      setResult({ success: false, message: 'Payment declined: insufficient balance' });
+      setResult({ success: false, message: t('payment.insufficientBalance') });
       return;
     }
     // Check if PIN is set
@@ -75,11 +77,11 @@ export default function PaymentScreen() {
 
   const handleSetPin = async () => {
     if (newPin.length !== 4 || confirmPin.length !== 4) {
-      Alert.alert('Error', 'PIN must be exactly 4 digits');
+      Alert.alert(t('payment.error'), t('payment.pinMust4'));
       return;
     }
     if (newPin !== confirmPin) {
-      Alert.alert('Error', 'PINs do not match');
+      Alert.alert(t('payment.error'), t('payment.pinsNotMatch'));
       return;
     }
     setSettingPin(true);
@@ -101,15 +103,15 @@ Alert.alert(
       setNewPin('');
       setConfirmPin('');
       setShowPinModal(false);
-      Alert.alert('Success', 'Transaction PIN set successfully. You can now make payments.');
+      Alert.alert(t('payment.success'), t('payment.pinSetSuccess'));
     } else {
-      Alert.alert('Error', r?.error || 'Failed to set PIN');
+      Alert.alert(t('payment.error'), r?.error || t('payment.failedPin'));
     }
   };
 
   const handleProcessPayment = async () => {
     if (pin.length !== 4) {
-      Alert.alert('Error', 'PIN must be exactly 4 digits');
+      Alert.alert(t('payment.error'), t('payment.pinMust4'));
       return;
     }
     setProcessing(true);
@@ -128,7 +130,7 @@ Alert.alert(
     }
     const r = data as { success: boolean; error?: string; new_balance?: number };
     if (r?.success) {
-      setResult({ success: true, message: `Payment of MC ${enteredAmount} at ${selectedBranch!.name} successful!` });
+      setResult({ success: true, message: t('payment.paymentSuccess', { amount: enteredAmount, branch: selectedBranch!.name }) });
       setShowPinModal(false);
       setPin('');
       setAmount('');
@@ -136,7 +138,7 @@ Alert.alert(
       await refreshMember();
       fetchData();
     } else {
-      Alert.alert('Payment Failed', r?.error || 'Payment could not be processed');
+      Alert.alert(t('payment.paymentFailed'), r?.error || t('payment.paymentNotProcessed'));
       setPin('');
     }
   };
@@ -148,8 +150,8 @@ Alert.alert(
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Make a Payment</Text>
-        <Text style={styles.pageSubtitle}>Pay at any M13 branch store</Text>
+        <Text style={styles.pageTitle}>{t('payment.title')}</Text>
+        <Text style={styles.pageSubtitle}>{t('payment.subtitle')}</Text>
       </View>
 
       <LinearGradient
@@ -158,7 +160,7 @@ Alert.alert(
       >
         <View style={styles.cardTop}>
           <Wallet size={22} color={Colors.neutral[200]} strokeWidth={2} />
-          <Text style={styles.cardLabel}>Available Balance</Text>
+          <Text style={styles.cardLabel}>{t('payment.availableBalance')}</Text>
         </View>
         <Text style={styles.balanceAmount}>MC {balance}</Text>
       </LinearGradient>
@@ -177,7 +179,7 @@ Alert.alert(
       )}
 
       <View style={styles.formCard}>
-        <Text style={styles.fieldLabel}>Amount (MC)</Text>
+        <Text style={styles.fieldLabel}>{t('payment.amount')}</Text>
         <View style={styles.amountInputWrap}>
           <Text style={styles.currencyPrefix}>MC</Text>
           <TextInput
@@ -190,10 +192,10 @@ Alert.alert(
           />
         </View>
         {enteredAmount > 0 && enteredAmount > balance && (
-          <Text style={styles.insufficientWarning}>Insufficient balance for this payment</Text>
+          <Text style={styles.insufficientWarning}>{t('payment.insufficientBalanceWarning')}</Text>
         )}
 
-        <Text style={styles.fieldLabel}>Branch Store</Text>
+        <Text style={styles.fieldLabel}>{t('payment.branchStore')}</Text>
         <TouchableOpacity
           style={styles.branchSelector}
           onPress={() => setShowBranches(true)}
@@ -212,7 +214,7 @@ Alert.alert(
           ) : (
             <View style={styles.branchSelectorContent}>
               <MapPin size={20} color={Colors.neutral[400]} strokeWidth={2} />
-              <Text style={styles.branchSelectorPlaceholder}>Select a branch store</Text>
+              <Text style={styles.branchSelectorPlaceholder}>{t('payment.selectBranchPlaceholder')}</Text>
             </View>
           )}
           <Store size={20} color={Colors.neutral[300]} strokeWidth={2} />
@@ -228,7 +230,7 @@ Alert.alert(
           activeOpacity={0.85}
         >
           <CreditCard size={20} color={Colors.neutral[0]} strokeWidth={2} />
-          <Text style={styles.payButtonText}>Confirm Payment</Text>
+          <Text style={styles.payButtonText}>{t('payment.confirmPayment')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -236,7 +238,7 @@ Alert.alert(
         <View style={styles.pinNotice}>
           <Shield size={18} color={Colors.warning[600]} strokeWidth={2} />
           <Text style={styles.pinNoticeText}>
-            You need to set up a 4-digit transaction PIN before making your first payment.
+            {t('payment.pinNotice')}
           </Text>
         </View>
       )}
@@ -245,7 +247,7 @@ Alert.alert(
         <View style={styles.modalOverlay}>
           <View style={styles.branchModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Branch</Text>
+              <Text style={styles.modalTitle}>{t('payment.selectBranchModal')}</Text>
               <TouchableOpacity onPress={() => setShowBranches(false)}>
                 <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
               </TouchableOpacity>
@@ -280,7 +282,7 @@ Alert.alert(
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{needsPinSetup ? 'Create Transaction PIN' : 'Enter PIN'}</Text>
+              <Text style={styles.modalTitle}>{needsPinSetup ? t('payment.createPin') : t('payment.enterPin')}</Text>
               <TouchableOpacity onPress={() => { setShowPinModal(false); setPin(''); setNewPin(''); setConfirmPin(''); }}>
                 <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
               </TouchableOpacity>
@@ -289,9 +291,9 @@ Alert.alert(
             {needsPinSetup ? (
               <>
                 <Text style={styles.modalDesc}>
-                  Create a 4-digit PIN to secure your payments. You'll need this PIN every time you make a payment.
+                  {t('payment.pinDesc')}
                 </Text>
-                <Text style={styles.fieldLabel}>New PIN (4 digits)</Text>
+                <Text style={styles.fieldLabel}>{t('payment.newPin')}</Text>
                 <TextInput
                   style={styles.pinInput}
                   value={newPin}
@@ -300,7 +302,7 @@ Alert.alert(
                   secureTextEntry
                   maxLength={4}
                 />
-                <Text style={styles.fieldLabel}>Confirm PIN</Text>
+                <Text style={styles.fieldLabel}>{t('payment.confirmPin')}</Text>
                 <TextInput
                   style={styles.pinInput}
                   value={confirmPin}
@@ -318,14 +320,14 @@ Alert.alert(
                   {settingPin ? (
                     <ActivityIndicator color={Colors.neutral[0]} />
                   ) : (
-                    <Text style={styles.modalButtonText}>Create PIN</Text>
+                    <Text style={styles.modalButtonText}>{t('payment.createPinBtn')}</Text>
                   )}
                 </TouchableOpacity>
               </>
             ) : (
               <>
                 <Text style={styles.modalDesc}>
-                  Enter your 4-digit PIN to confirm payment of MC {enteredAmount} at {selectedBranch?.name}.
+                  {t('payment.pinConfirmDesc', { amount: enteredAmount ?? 0, branch: selectedBranch?.name ?? '' })}
                 </Text>
                 <TextInput
                   style={styles.pinInputLarge}
@@ -345,7 +347,7 @@ Alert.alert(
                   {processing ? (
                     <ActivityIndicator color={Colors.neutral[0]} />
                   ) : (
-                    <Text style={styles.modalButtonText}>Confirm Payment</Text>
+                    <Text style={styles.modalButtonText}>{t('payment.confirmPaymentBtn')}</Text>
                   )}
                 </TouchableOpacity>
               </>

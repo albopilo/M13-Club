@@ -36,6 +36,10 @@ import {
   AuthProvider,
 } from "@/context/AuthContext";
 
+import {
+  LanguageProvider,
+} from "@/context/LanguageContext";
+
 import * as WebBrowser from "expo-web-browser";
 
 /**
@@ -98,7 +102,8 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack
+      <LanguageProvider>
+        <Stack
         screenOptions={{
           headerShown:
             false,
@@ -136,6 +141,7 @@ export default function RootLayout() {
       <StatusBar
         style="light"
       />
+      </LanguageProvider>
     </AuthProvider>
   );
 }

@@ -6,12 +6,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Search, Wallet, X, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { supabase, Member, Wallet as WalletType } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface MemberWithWallet extends Member {
   wallet: WalletType | null;
 }
 
 export default function AdminWalletScreen() {
+  const { t } = useLanguage();
   const [members, setMembers] = useState<MemberWithWallet[]>([]);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -45,7 +47,7 @@ export default function AdminWalletScreen() {
   const handleAdjust = async () => {
     if (!selected || !amount) return;
     const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) { setError('Enter a valid amount'); return; }
+    if (isNaN(amt) || amt <= 0) { setError(t('adminWallet.invalidAmount')); return; }
     setAdjusting(true);
     setError(null);
     setSuccess(null);
@@ -60,7 +62,7 @@ export default function AdminWalletScreen() {
     if (rpcError) { setError(rpcError.message); return; }
     const r = data as { success: boolean; error?: string; new_balance?: number };
     if (!r.success) { setError(r.error || 'Failed'); return; }
-    setSuccess(`Wallet updated. New balance: MC ${Math.round(r.new_balance ?? 0)}`);
+    setSuccess(t('adminWallet.updated', { balance: Math.round(r.new_balance ?? 0) }));
     setAmount('');
     setReason('');
     fetchMembers();
@@ -72,14 +74,14 @@ export default function AdminWalletScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={22} color={Colors.neutral[0]} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Wallet Management</Text>
+        <Text style={styles.headerTitle}>{t('adminWallet.title')}</Text>
       </View>
 
       <View style={styles.searchBar}>
         <Search size={18} color={Colors.neutral[400]} strokeWidth={2} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search members..."
+          placeholder={t('adminWallet.search')}
           placeholderTextColor={Colors.neutral[400]}
           value={search}
           onChangeText={setSearch}
@@ -95,7 +97,7 @@ export default function AdminWalletScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
             <Wallet size={32} color={Colors.neutral[300]} strokeWidth={1.5} />
-            <Text style={styles.emptyText}>No members found</Text>
+            <Text style={styles.emptyText}>{t('adminWallet.none')}</Text>
           </View>
         )}
         renderItem={({ item }) => (
@@ -108,7 +110,7 @@ export default function AdminWalletScreen() {
               <Text style={styles.memberNumber}>{item.member_number}</Text>
             </View>
             <View style={styles.balanceCol}>
-              <Text style={styles.balanceLabel}>Balance</Text>
+              <Text style={styles.balanceLabel}>{t('adminWallet.balance')}</Text>
               <Text style={styles.balanceAmount}>MC {Math.round(Number(item.wallet?.balance ?? 0))}</Text>
             </View>
           </TouchableOpacity>
@@ -121,7 +123,7 @@ export default function AdminWalletScreen() {
             {selected && (
               <>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Adjust Wallet</Text>
+                  <Text style={styles.modalTitle}>{t('adminWallet.adjust')}</Text>
                   <TouchableOpacity onPress={() => setSelected(null)}>
                     <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
                   </TouchableOpacity>
@@ -130,7 +132,7 @@ export default function AdminWalletScreen() {
                 <View style={styles.memberInfo}>
                   <Text style={styles.memberInfoName}>{selected.full_name}</Text>
                   <Text style={styles.memberInfoId}>{selected.member_number}</Text>
-                  <Text style={styles.currentBalance}>Current Balance: MC {Math.round(Number(selected.wallet?.balance ?? 0))}</Text>
+                  <Text style={styles.currentBalance}>{t('adminWallet.currentBalance', { balance: Math.round(Number(selected.wallet?.balance ?? 0)) })}</Text>
                 </View>
 
                 <View style={styles.typeToggle}>
@@ -139,18 +141,18 @@ export default function AdminWalletScreen() {
                     onPress={() => setAdjustType('credit')}
                   >
                     <TrendingUp size={18} color={adjustType === 'credit' ? Colors.neutral[0] : Colors.neutral[500]} strokeWidth={2} />
-                    <Text style={[styles.typeBtnText, adjustType === 'credit' && styles.typeBtnTextActive]}>Credit (Add)</Text>
+                    <Text style={[styles.typeBtnText, adjustType === 'credit' && styles.typeBtnTextActive]}>{t('adminWallet.credit')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.typeBtn, adjustType === 'debit' && styles.typeBtnActiveDebit]}
                     onPress={() => setAdjustType('debit')}
                   >
                     <TrendingDown size={18} color={adjustType === 'debit' ? Colors.neutral[0] : Colors.neutral[500]} strokeWidth={2} />
-                    <Text style={[styles.typeBtnText, adjustType === 'debit' && styles.typeBtnTextActive]}>Debit (Remove)</Text>
+                    <Text style={[styles.typeBtnText, adjustType === 'debit' && styles.typeBtnTextActive]}>{t('adminWallet.debit')}</Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.fieldLabel}>Amount (MC)</Text>
+                <Text style={styles.fieldLabel}>{t('adminWallet.amount')}</Text>
                 <TextInput
                   style={styles.fieldInput}
                   placeholder="0"
@@ -160,10 +162,10 @@ export default function AdminWalletScreen() {
                   keyboardType="numeric"
                 />
 
-                <Text style={styles.fieldLabel}>Reason</Text>
+                <Text style={styles.fieldLabel}>{t('adminWallet.reason')}</Text>
                 <TextInput
                   style={[styles.fieldInput, { height: 70, textAlignVertical: 'top' }]}
-                  placeholder="Reason for adjustment..."
+                  placeholder={t('adminWallet.reasonPlaceholder')}
                   placeholderTextColor={Colors.neutral[400]}
                   value={reason}
                   onChangeText={setReason}
@@ -181,7 +183,7 @@ export default function AdminWalletScreen() {
                 >
                   {adjusting ? <ActivityIndicator color={Colors.neutral[0]} /> : (
                     <Text style={styles.adjustBtnText}>
-                      {adjustType === 'credit' ? 'Credit Wallet' : 'Debit Wallet'}
+                      {adjustType === 'credit' ? t('adminWallet.creditBtn') : t('adminWallet.debitBtn')}
                     </Text>
                   )}
                 </TouchableOpacity>

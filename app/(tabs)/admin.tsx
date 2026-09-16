@@ -13,6 +13,7 @@ import {
   Users, Ticket, Store, FileText, TrendingUp, Wallet, Shield, ArrowRight, Receipt,
 } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { isAdminRole } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
@@ -33,6 +34,7 @@ interface Stats {
 export default function AdminScreen() {
   const insets = useSafeAreaInsets();
   const { member } = useAuth();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,18 +71,18 @@ export default function AdminScreen() {
     return (
       <View style={styles.noAccess}>
         <Shield size={48} color={Colors.neutral[300]} strokeWidth={1.5} />
-        <Text style={styles.noAccessText}>Admin access required</Text>
+        <Text style={styles.noAccessText}>{t('admin.accessRequired')}</Text>
       </View>
     );
   }
 
   const menuItems = [
-    { icon: Users, label: 'Members', desc: 'View & manage members', color: Colors.primary, route: '/admin/members' as const },
-    { icon: Ticket, label: 'Vouchers', desc: 'Create & manage vouchers', color: Colors.accent, route: '/admin/vouchers' as const },
-    { icon: Store, label: 'Branches', desc: 'Create & manage branch stores', color: Colors.success, route: '/admin/branches' as const },
-    { icon: Receipt, label: 'Payment Logs', desc: 'View all payment transactions', color: Colors.warning, route: '/admin/payment-logs' as const },
-    { icon: Wallet, label: 'Wallet', desc: 'Adjust member wallets', color: Colors.warning, route: '/admin/wallet' as const },
-    { icon: FileText, label: 'Audit Logs', desc: 'View activity trail', color: Colors.secondary, route: '/admin/audit' as const },
+    { icon: Users, label: t('admin.members'), desc: t('admin.membersDesc'), color: Colors.primary, route: '/admin/members' as const },
+    { icon: Ticket, label: t('admin.vouchers'), desc: t('admin.vouchersDesc'), color: Colors.accent, route: '/admin/vouchers' as const },
+    { icon: Store, label: t('admin.branches'), desc: t('admin.branchesDesc'), color: Colors.success, route: '/admin/branches' as const },
+    { icon: Receipt, label: t('admin.paymentLogs'), desc: t('admin.paymentLogsDesc'), color: Colors.warning, route: '/admin/payment-logs' as const },
+    { icon: Wallet, label: t('admin.wallet'), desc: t('admin.walletDesc'), color: Colors.warning, route: '/admin/wallet' as const },
+    { icon: FileText, label: t('admin.auditLogs'), desc: t('admin.auditLogsDesc'), color: Colors.secondary, route: '/admin/audit' as const },
   ];
 
   return (
@@ -98,9 +100,9 @@ export default function AdminScreen() {
       >
         <View style={styles.adminBadge}>
           <Shield size={16} color={Colors.accent[400]} strokeWidth={2} />
-          <Text style={styles.adminBadgeText}>ADMIN PANEL</Text>
+          <Text style={styles.adminBadgeText}>{t('admin.panel')}</Text>
         </View>
-        <Text style={styles.adminTitle}>Dashboard</Text>
+        <Text style={styles.adminTitle}>{t('admin.dashboard')}</Text>
         <Text style={styles.adminSubtitle}>{member.full_name} · {member.role.replace('_', ' ').toUpperCase()}</Text>
       </LinearGradient>
 
@@ -109,30 +111,30 @@ export default function AdminScreen() {
       ) : (
         <>
           <View style={styles.statsGrid}>
-            <StatCard label="Members" value={stats?.total_members ?? 0} icon={Users} color={Colors.primary} />
-            <StatCard label="Total Balance" value={`MC ${Math.round(stats?.total_balance ?? 0)}`} icon={Wallet} color={Colors.success} />
-            <StatCard label="Transactions" value={stats?.total_transactions ?? 0} icon={TrendingUp} color={Colors.accent} />
-            <StatCard label="Active Vouchers" value={stats?.active_vouchers ?? 0} icon={Ticket} color={Colors.secondary} />
+            <StatCard label={t('admin.members')} value={stats?.total_members ?? 0} icon={Users} color={Colors.primary} />
+            <StatCard label={t('admin.totalBalance')} value={`MC ${Math.round(stats?.total_balance ?? 0)}`} icon={Wallet} color={Colors.success} />
+            <StatCard label={t('admin.transactions')} value={stats?.total_transactions ?? 0} icon={TrendingUp} color={Colors.accent} />
+            <StatCard label={t('admin.activeVouchers')} value={stats?.active_vouchers ?? 0} icon={Ticket} color={Colors.secondary} />
           </View>
 
           <View style={styles.financialRow}>
             <View style={[styles.finCard, { backgroundColor: Colors.success[50] }]}>
               <TrendingUp size={20} color={Colors.success[600]} strokeWidth={2} />
-              <Text style={styles.finLabel}>Total Credited</Text>
+              <Text style={styles.finLabel}>{t('admin.totalCredited')}</Text>
               <Text style={[styles.finAmount, { color: Colors.success[700] }]}>
                 MC {Math.round(stats?.total_credit ?? 0)}
               </Text>
             </View>
             <View style={[styles.finCard, { backgroundColor: Colors.error[50] }]}>
               <TrendingUp size={20} color={Colors.error[600]} strokeWidth={2} style={{ transform: [{ rotate: '180deg' }] }} />
-              <Text style={styles.finLabel}>Total Debited</Text>
+              <Text style={styles.finLabel}>{t('admin.totalDebited')}</Text>
               <Text style={[styles.finAmount, { color: Colors.error[700] }]}>
                 MC {Math.round(stats?.total_debit ?? 0)}
               </Text>
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Management</Text>
+          <Text style={styles.sectionTitle}>{t('admin.management')}</Text>
           <View style={styles.menuList}>
             {menuItems.map((item, i) => (
               <TouchableOpacity

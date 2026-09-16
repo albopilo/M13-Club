@@ -12,6 +12,7 @@ import { useFocusEffect } from 'expo-router';
 import { Receipt, Store, TrendingDown, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import * as XLSX from "xlsx";
 import * as FileSystem from "expo-file-system";
@@ -36,6 +37,7 @@ interface PaymentLog {
 
 export default function PaymentLogsScreen() {
   const { member } = useAuth();
+  const { t } = useLanguage();
   console.log(member);
   const [logs, setLogs] = useState<PaymentLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ const fetchLogs = useCallback(async () => {
 
   if (error) {
     console.error(error);
-    Alert.alert("Error", error.message);
+    Alert.alert(t('logs.error'), error.message);
     setLogs([]);
   } else {
     setLogs(data ?? []);
@@ -70,7 +72,7 @@ const exportToExcel = async () => {
     if (error) throw error;
 
     if (!data?.url) {
-      Alert.alert("Export Failed", "No download URL returned.");
+      Alert.alert(t('logs.exportFailed'), t('logs.noUrl'));
       return;
     }
 
@@ -78,12 +80,12 @@ const exportToExcel = async () => {
     await Linking.openURL(data.url);
 
     Alert.alert(
-      "Export Successful",
-      "Your Excel file is downloading."
+      t('logs.exportSuccess'),
+      t('logs.downloading')
     );
   } catch (err: any) {
     console.error(err);
-    Alert.alert("Export Failed", err.message);
+    Alert.alert(t('logs.exportFailed'), err.message);
   }
 };
 
@@ -115,11 +117,11 @@ const exportToExcel = async () => {
 >
 <View>
   <Text style={styles.pageTitle}>
-    Payment Logs
+    {t('logs.title')}
   </Text>
 
   <Text style={styles.pageSubtitle}>
-    All member payment transactions
+    {t('logs.subtitle')}
   </Text>
 </View>
 
@@ -139,7 +141,7 @@ const exportToExcel = async () => {
         fontWeight: "600",
       }}
     >
-      Export Excel
+      {t('logs.exportExcel')}
     </Text>
   </Pressable>
 )}
@@ -150,8 +152,8 @@ const exportToExcel = async () => {
       ) : logs.length === 0 ? (
         <View style={styles.emptyState}>
           <Receipt size={40} color={Colors.neutral[300]} strokeWidth={1.5} />
-          <Text style={styles.emptyText}>No payment logs yet</Text>
-          <Text style={styles.emptySubtext}>Payment transactions will appear here</Text>
+          <Text style={styles.emptyText}>{t('logs.noLogs')}</Text>
+          <Text style={styles.emptySubtext}>{t('logs.noLogsDesc')}</Text>
         </View>
       ) : (
         <FlatList
@@ -179,7 +181,7 @@ const exportToExcel = async () => {
               </View>
               <View style={styles.logAmountCol}>
                 <Text style={styles.logAmount}>- MC {Math.round(Number(item.amount))}</Text>
-                <Text style={styles.logBalance}>Bal: MC {Math.round(Number(item.balance_after))}</Text>
+                <Text style={styles.logBalance}>{t('logs.bal', { amount: Math.round(Number(item.balance_after)) })}</Text>
               </View>
             </View>
           )}

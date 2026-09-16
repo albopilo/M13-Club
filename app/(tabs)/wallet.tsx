@@ -10,12 +10,14 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { TrendingUp, TrendingDown, Wallet as WalletIcon } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { supabase, Wallet as WalletType, Transaction } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WalletScreen() {
   const { member } = useAuth();
+  const { t } = useLanguage();
   const [wallet, setWallet] = useState<WalletType | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,7 +63,7 @@ export default function WalletScreen() {
       >
         <View style={styles.cardTop}>
           <WalletIcon size={24} color={Colors.neutral[200]} strokeWidth={2} />
-          <Text style={styles.cardLabel}>Wallet Balance</Text>
+          <Text style={styles.cardLabel}>{t('wallet.balance')}</Text>
         </View>
         <Text style={styles.balanceAmount}>
           MC {Math.round(Number(wallet?.balance ?? 0))}
@@ -70,12 +72,12 @@ export default function WalletScreen() {
       </LinearGradient>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Transaction History</Text>
+        <Text style={styles.sectionTitle}>{t('wallet.history')}</Text>
         {transactions.length === 0 ? (
           <View style={styles.emptyState}>
             <TrendingUp size={32} color={Colors.neutral[300]} strokeWidth={1.5} />
-            <Text style={styles.emptyText}>No transactions yet</Text>
-            <Text style={styles.emptySubtext}>Your wallet activity will appear here</Text>
+            <Text style={styles.emptyText}>{t('wallet.noTransactions')}</Text>
+            <Text style={styles.emptySubtext}>{t('wallet.emptyDesc')}</Text>
           </View>
         ) : (
           <FlatList
@@ -107,7 +109,7 @@ export default function WalletScreen() {
                   ]}>
                     {item.type === 'credit' ? '+' : '-'} MC {Math.round(Number(item.amount))}
                   </Text>
-                  <Text style={styles.txBalance}>Bal: MC {Math.round(Number(item.balance_after))}</Text>
+                  <Text style={styles.txBalance}>{t('wallet.bal', { amount: Math.round(Number(item.balance_after)) })}</Text>
                 </View>
               </View>
             )}

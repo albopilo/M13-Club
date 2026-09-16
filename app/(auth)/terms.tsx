@@ -16,8 +16,10 @@ import {
 } from "@/content/terms-and-conditions";
 
 import { Colors, FontFamily } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function TermsScreen() {
+  const { t } = useLanguage();
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -31,7 +33,7 @@ export default function TermsScreen() {
           />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Terms & Conditions</Text>
+        <Text style={styles.headerTitle}>{t('terms.title')}</Text>
       </View>
 
       <ScrollView
@@ -42,8 +44,7 @@ export default function TermsScreen() {
         </Text>
 
         <Text style={styles.meta}>
-          Version {TERMS_VERSION} • Last updated{" "}
-          {TERMS_LAST_UPDATED}
+          {t('terms.meta', { version: TERMS_VERSION, date: TERMS_LAST_UPDATED })}
         </Text>
 
         {TERMS_SECTIONS.map((section) => (

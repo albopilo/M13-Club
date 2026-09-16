@@ -6,17 +6,19 @@ import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, FileText, Shield } from 'lucide-react-native';
 import { supabase, AuditLog } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
-
-const ACTION_LABELS: Record<string, string> = {
-  wallet_adjustment: 'Wallet Adjustment',
-  booking_status_update: 'Booking Update',
-  voucher_create: 'Voucher Created',
-  member_role_update: 'Role Changed',
-  member_status_update: 'Status Changed',
-};
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AdminAuditScreen() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<AuditLog[]>([]);
+
+  const ACTION_LABELS: Record<string, string> = {
+    wallet_adjustment: t('adminAudit.walletAdjustment'),
+    booking_status_update: t('adminAudit.bookingUpdate'),
+    voucher_create: t('adminAudit.voucherCreated'),
+    member_role_update: t('adminAudit.roleChanged'),
+    member_status_update: t('adminAudit.statusChanged'),
+  };
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchLogs = useCallback(async () => {
@@ -52,7 +54,7 @@ export default function AdminAuditScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={22} color={Colors.neutral[0]} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Audit Logs</Text>
+        <Text style={styles.headerTitle}>{t('adminAudit.title')}</Text>
       </View>
 
       <FlatList
@@ -64,7 +66,7 @@ export default function AdminAuditScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
             <FileText size={32} color={Colors.neutral[300]} strokeWidth={1.5} />
-            <Text style={styles.emptyText}>No audit logs yet</Text>
+            <Text style={styles.emptyText}>{t('adminAudit.none')}</Text>
           </View>
         )}
         renderItem={({ item }) => (

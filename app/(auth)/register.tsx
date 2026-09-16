@@ -26,6 +26,7 @@ import {
 } from "lucide-react-native";
 
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 import {
   Colors,
@@ -38,6 +39,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
+  const { t } = useLanguage();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -54,23 +56,23 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!fullName.trim() || !email.trim() || !password) {
-      setError("Please fill in all required fields.");
+      setError(t('register.errorRequired'));
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t('register.errorPassword'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t('register.errorMatch'));
       return;
     }
 
     if (!acceptedLegal) {
       setError(
-        "Please agree to the M13 Club Terms & Conditions and Privacy Policy."
+        t('register.errorLegal')
       );
       return;
     }
@@ -104,7 +106,7 @@ export default function RegisterScreen() {
       setError(
         e instanceof Error
           ? e.message
-          : "An unexpected error occurred while creating your account. Please try again."
+          : t('register.errorUnexpected')
       );
     } finally {
       setLoading(false);
@@ -144,11 +146,11 @@ export default function RegisterScreen() {
             </View>
 
             <Text style={styles.title}>
-              Join M13 Club
+              {t('register.title')}
             </Text>
 
             <Text style={styles.subtitle}>
-              Create your membership account
+              {t('register.subtitle')}
             </Text>
           </View>
 
@@ -163,7 +165,7 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Full Name *
+                {t('register.fullName')}
               </Text>
 
               <View style={styles.inputWrapper}>
@@ -175,7 +177,7 @@ export default function RegisterScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="John Doe"
+                  placeholder={t('register.fullNamePlaceholder')}
                   placeholderTextColor={Colors.neutral[500]}
                   value={fullName}
                   onChangeText={setFullName}
@@ -189,7 +191,7 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Email Address *
+                {t('register.email')}
               </Text>
 
               <View style={styles.inputWrapper}>
@@ -201,7 +203,7 @@ export default function RegisterScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="you@example.com"
+                  placeholder={t('register.emailPlaceholder')}
                   placeholderTextColor={Colors.neutral[500]}
                   value={email}
                   onChangeText={setEmail}
@@ -216,7 +218,7 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Phone Number
+                {t('register.phone')}
               </Text>
 
               <View style={styles.inputWrapper}>
@@ -228,7 +230,7 @@ export default function RegisterScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="+60 12 345 6789"
+                  placeholder={t('register.phonePlaceholder')}
                   placeholderTextColor={Colors.neutral[500]}
                   value={phone}
                   onChangeText={setPhone}
@@ -241,7 +243,7 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Password *
+                {t('register.password')}
               </Text>
 
               <View style={styles.inputWrapper}>
@@ -253,7 +255,7 @@ export default function RegisterScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="At least 6 characters"
+                  placeholder={t('register.passwordPlaceholder')}
                   placeholderTextColor={Colors.neutral[500]}
                   value={password}
                   onChangeText={setPassword}
@@ -273,8 +275,8 @@ export default function RegisterScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={
                     showPassword
-                      ? "Hide password"
-                      : "Show password"
+                      ? t('register.hidePassword')
+                      : t('register.showPassword')
                   }
                 >
                   {showPassword ? (
@@ -296,7 +298,7 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Confirm Password *
+                {t('register.confirmPassword')}
               </Text>
 
               <View style={styles.inputWrapper}>
@@ -308,7 +310,7 @@ export default function RegisterScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="Re-enter password"
+                  placeholder={t('register.confirmPlaceholder')}
                   placeholderTextColor={Colors.neutral[500]}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -323,13 +325,11 @@ export default function RegisterScreen() {
 
             <View style={styles.legalContainer}>
               <Text style={styles.legalHeading}>
-                Legal Agreement
+                {t('register.legalHeading')}
               </Text>
 
               <Text style={styles.legalDescription}>
-                Before creating your account, please review
-                and agree to the M13 Club Terms & Conditions
-                and Privacy Policy.
+                {t('register.legalDesc')}
               </Text>
 
               <TouchableOpacity
@@ -338,16 +338,15 @@ export default function RegisterScreen() {
                 activeOpacity={0.8}
                 disabled={loading}
                 accessibilityRole="button"
-                accessibilityLabel="Open M13 Club Terms and Conditions"
+                accessibilityLabel={t('register.openTerms')}
               >
                 <View style={styles.documentTextContainer}>
                   <Text style={styles.documentTitle}>
-                    M13 Club Terms & Conditions
+                    {t('register.termsTitle')}
                   </Text>
 
                   <Text style={styles.documentSubtitle}>
-                    Rules for your account, MC, vouchers,
-                    transactions, and use of M13 Club.
+                    {t('register.termsDesc')}
                   </Text>
                 </View>
 
@@ -364,16 +363,15 @@ export default function RegisterScreen() {
                 activeOpacity={0.8}
                 disabled={loading}
                 accessibilityRole="button"
-                accessibilityLabel="Open M13 Club Privacy Policy"
+                accessibilityLabel={t('register.openPrivacy')}
               >
                 <View style={styles.documentTextContainer}>
                   <Text style={styles.documentTitle}>
-                    M13 Club Privacy Policy
+                    {t('register.privacyTitle')}
                   </Text>
 
                   <Text style={styles.documentSubtitle}>
-                    How M13 collects, uses, stores, and
-                    protects your personal information.
+                    {t('register.privacyDesc')}
                   </Text>
                 </View>
 
@@ -417,9 +415,7 @@ export default function RegisterScreen() {
                 </View>
 
                 <Text style={styles.checkboxText}>
-                  I have read and agree to the M13 Club Terms
-                  & Conditions and acknowledge the M13 Club
-                  Privacy Policy.
+                  {t('register.checkboxText')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -446,7 +442,7 @@ export default function RegisterScreen() {
               ) : (
                 <>
                   <Text style={styles.buttonText}>
-                    Create Account
+                    {t('register.createAccount')}
                   </Text>
 
                   <ArrowRight
@@ -460,7 +456,7 @@ export default function RegisterScreen() {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>
-                Already a member?{" "}
+                {t('register.alreadyMember')}{" "}
               </Text>
 
               <Link
@@ -468,7 +464,7 @@ export default function RegisterScreen() {
                 style={styles.linkText}
               >
                 <Text style={styles.linkText}>
-                  Sign In
+                  {t('register.signIn')}
                 </Text>
               </Link>
             </View>

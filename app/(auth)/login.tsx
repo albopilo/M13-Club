@@ -31,6 +31,9 @@ import {
 import {
   useAuth,
 } from "@/context/AuthContext";
+import {
+  useLanguage,
+} from "@/context/LanguageContext";
 
 import {
   Colors,
@@ -82,6 +85,7 @@ export default function LoginScreen() {
     termsAccepted,
     validateCurrentUser,
   } = useAuth();
+  const { t } = useLanguage();
 
   const [email, setEmail] =
     useState("");
@@ -185,7 +189,7 @@ export default function LoginScreen() {
         !password
       ) {
         setError(
-          "Please enter your email and password."
+          t('login.errorEmpty')
         );
 
         return;
@@ -242,7 +246,7 @@ export default function LoginScreen() {
         );
 
         setError(
-          "An unexpected error occurred while signing in. Please try again."
+          t('login.errorUnexpected')
         );
       } finally {
         setLoading(false);
@@ -353,7 +357,7 @@ export default function LoginScreen() {
             );
 
             setError(
-              "No Google authentication URL was returned."
+              t('login.noGoogleUrl')
             );
 
             return;
@@ -451,7 +455,7 @@ export default function LoginScreen() {
           );
 
           setError(
-            "No Google authentication URL was returned."
+            t('login.noGoogleUrl')
           );
 
           return;
@@ -512,7 +516,7 @@ export default function LoginScreen() {
           );
 
           setError(
-            "No authentication tokens were returned from Google."
+            t('login.noGoogleTokens')
           );
 
           return;
@@ -549,7 +553,7 @@ export default function LoginScreen() {
           );
 
           setError(
-            "The Google authentication response was incomplete."
+            t('login.googleIncomplete')
           );
 
           return;
@@ -602,7 +606,7 @@ export default function LoginScreen() {
           );
 
           setError(
-            "Unable to retrieve your M13 Club account."
+            t('login.googleNoAccount')
           );
 
           return;
@@ -667,7 +671,7 @@ export default function LoginScreen() {
         setError(
           e instanceof Error
             ? e.message
-            : "An unexpected error occurred while signing in with Google."
+            : t('login.googleError')
         );
       } finally {
         setLoading(false);
@@ -726,7 +730,7 @@ export default function LoginScreen() {
                 styles.title
               }
             >
-              Welcome Back
+              {t('login.welcome')}
             </Text>
 
             <Text
@@ -734,8 +738,7 @@ export default function LoginScreen() {
                 styles.subtitle
               }
             >
-              Sign in to your membership
-              account
+              {t('login.subtitle')}
             </Text>
           </View>
 
@@ -770,7 +773,7 @@ export default function LoginScreen() {
                   styles.label
                 }
               >
-                Email Address
+                {t('login.email')}
               </Text>
 
               <View
@@ -790,7 +793,7 @@ export default function LoginScreen() {
                   style={
                     styles.input
                   }
-                  placeholder="you@example.com"
+                  placeholder={t('login.emailPlaceholder')}
                   placeholderTextColor={
                     Colors.neutral[500]
                   }
@@ -823,7 +826,7 @@ export default function LoginScreen() {
                   styles.label
                 }
               >
-                Password
+                {t('login.password')}
               </Text>
 
               <View
@@ -843,7 +846,7 @@ export default function LoginScreen() {
                   style={
                     styles.input
                   }
-                  placeholder="Enter your password"
+                  placeholder={t('login.passwordPlaceholder')}
                   placeholderTextColor={
                     Colors.neutral[500]
                   }
@@ -926,7 +929,7 @@ export default function LoginScreen() {
                       styles.buttonText
                     }
                   >
-                    Sign In
+                    {t('login.signIn')}
                   </Text>
 
                   <ArrowRight
@@ -966,7 +969,7 @@ export default function LoginScreen() {
                     styles.googleText
                   }
                 >
-                  Continue with Google
+                  {t('login.google')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -981,7 +984,7 @@ export default function LoginScreen() {
                   styles.footerText
                 }
               >
-                Don't have an account?{" "}
+                {t('login.noAccount')}{" "}
               </Text>
 
               <Link
@@ -995,7 +998,7 @@ export default function LoginScreen() {
                     styles.linkText
                   }
                 >
-                  Join the Club
+                  {t('login.joinClub')}
                 </Text>
               </Link>
             </View>

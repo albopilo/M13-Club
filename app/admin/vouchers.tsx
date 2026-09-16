@@ -6,9 +6,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Plus, Ticket, X, Check, Calendar, Sparkles } from 'lucide-react-native';
 import { supabase, Voucher } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { useLanguage } from '@/context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function AdminVouchersScreen() {
+  const { t } = useLanguage();
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -27,7 +29,7 @@ export default function AdminVouchersScreen() {
 
   const handleCreate = async () => {
     if (!form.code.trim() || !form.description.trim() || !form.value) {
-      setError('Please fill in code, description, and value.');
+      setError(t('adminVouchers.errorFields'));
       return;
     }
     setCreating(true);
@@ -61,7 +63,7 @@ export default function AdminVouchersScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={22} color={Colors.neutral[0]} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vouchers</Text>
+        <Text style={styles.headerTitle}>{t('adminVouchers.title')}</Text>
         <TouchableOpacity onPress={() => { setShowCreate(true); setError(null); }} style={styles.addBtn}>
           <Plus size={22} color={Colors.neutral[0]} strokeWidth={2} />
         </TouchableOpacity>
@@ -76,7 +78,7 @@ export default function AdminVouchersScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
             <Ticket size={32} color={Colors.neutral[300]} strokeWidth={1.5} />
-            <Text style={styles.emptyText}>No vouchers yet</Text>
+            <Text style={styles.emptyText}>{t('adminVouchers.none')}</Text>
           </View>
         )}
         renderItem={({ item }) => (
@@ -93,13 +95,13 @@ export default function AdminVouchersScreen() {
                   onPress={() => toggleActive(item)}
                 >
                   <Text style={[styles.toggleText, item.is_active ? styles.toggleTextActive : styles.toggleTextInactive]}>
-                    {item.is_active ? 'Active' : 'Inactive'}
+                    {item.is_active ? t('adminVouchers.active') : t('adminVouchers.inactive')}
                   </Text>
                 </TouchableOpacity>
               </View>
               <Text style={styles.voucherDesc}>{item.description}</Text>
               <View style={styles.voucherMeta}>
-                <Text style={styles.metaText}>Limit: {item.redemption_limit}</Text>
+                <Text style={styles.metaText}>{t('adminVouchers.limit', { limit: item.redemption_limit })}</Text>
                 {item.expires_at && (
                   <View style={styles.metaItem}>
                     <Calendar size={12} color={Colors.neutral[400]} strokeWidth={2} />
@@ -116,7 +118,7 @@ export default function AdminVouchersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Voucher</Text>
+              <Text style={styles.modalTitle}>{t('adminVouchers.create')}</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
                 <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
               </TouchableOpacity>
@@ -124,14 +126,14 @@ export default function AdminVouchersScreen() {
 
             {error && <View style={styles.errorBanner}><Text style={styles.errorText}>{error}</Text></View>}
 
-            <FieldInput label="Code" value={form.code} onChange={(v) => setForm({ ...form, code: v })} placeholder="SUMMER100" autoCapitalize="characters" />
-            <FieldInput label="Description" value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder="Summer promotion" />
-            <FieldInput label="Value (MC)" value={form.value} onChange={(v) => setForm({ ...form, value: v })} placeholder="100" keyboardType="numeric" />
-            <FieldInput label="Redemption Limit" value={form.limit} onChange={(v) => setForm({ ...form, limit: v })} placeholder="1" keyboardType="numeric" />
-            <FieldInput label="Expiry Date (YYYY-MM-DD, optional)" value={form.expires} onChange={(v) => setForm({ ...form, expires: v })} placeholder="2026-12-31" />
+            <FieldInput label={t('adminVouchers.code')} value={form.code} onChange={(v) => setForm({ ...form, code: v })} placeholder={t('adminVouchers.codePlaceholder')} autoCapitalize="characters" />
+            <FieldInput label={t('adminVouchers.description')} value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder={t('adminVouchers.descPlaceholder')} />
+            <FieldInput label={t('adminVouchers.value')} value={form.value} onChange={(v) => setForm({ ...form, value: v })} placeholder={t('adminVouchers.valuePlaceholder')} keyboardType="numeric" />
+            <FieldInput label={t('adminVouchers.redemptionLimit')} value={form.limit} onChange={(v) => setForm({ ...form, limit: v })} placeholder={t('adminVouchers.limitPlaceholder')} keyboardType="numeric" />
+            <FieldInput label={t('adminVouchers.expiry')} value={form.expires} onChange={(v) => setForm({ ...form, expires: v })} placeholder={t('adminVouchers.expiryPlaceholder')} />
 
             <TouchableOpacity style={[styles.createBtn, creating && styles.createBtnDisabled]} onPress={handleCreate} disabled={creating} activeOpacity={0.85}>
-              {creating ? <ActivityIndicator color={Colors.neutral[0]} /> : <Text style={styles.createBtnText}>Create Voucher</Text>}
+              {creating ? <ActivityIndicator color={Colors.neutral[0]} /> : <Text style={styles.createBtnText}>{t('adminVouchers.createBtn')}</Text>}
             </TouchableOpacity>
           </View>
         </View>
