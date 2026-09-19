@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, Modal, ActivityIndicator, FlatList,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowLeft, Plus, Ticket, X, Check, Calendar, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, Plus, Ticket, X, Check, Calendar, Sparkles, Package } from 'lucide-react-native';
 import { supabase, Voucher } from '@/lib/supabase';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { useLanguage } from '@/context/LanguageContext';
@@ -14,9 +14,10 @@ export default function AdminVouchersScreen() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ code: '', description: '', value: '', limit: '1', expires: '' });
+  const [form, setForm] = useState({ codePrefix: '', description: '', value: '', quantity: '10', limit: '1', expires: '' });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const fetchVouchers = useCallback(async () => {
     const { data } = await supabase.from('vouchers').select('*').order('created_at', { ascending: false });
@@ -28,34 +29,37 @@ export default function AdminVouchersScreen() {
   const onRefresh = async () => { setRefreshing(true); await fetchVouchers(); setRefreshing(false); };
 
   const handleCreate = async () => {
-    if (!form.code.trim() || !form.description.trim() || !form.value) {
+    if (!form.codePrefix.trim() || !form.description.trim() || !form.value) {
       setError(t('adminVouchers.errorFields'));
       return;
     }
     setCreating(true);
     setError(null);
-    const { data, error: rpcError } = await supabase.rpc('admin_create_voucher', {
-      p_code: form.code.trim().toUpperCase(),
+    setSuccessMsg(null);
+    const { data, error: rpcError } = await supabase.rpc('admin_bulk_create_vouchers', {
+      p_code_prefix: form.codePrefix.trim().toUpperCase(),
       p_description: form.description.trim(),
       p_value: parseFloat(form.value),
+      p_quantity: parseInt(form.quantity) || 1,
       p_redemption_limit: parseInt(form.limit) || 1,
       p_expires_at: form.expires ? new Date(form.expires).toISOString() : null,
     });
     setCreating(false);
     if (rpcError) { setError(rpcError.message); return; }
-    const r = data as { success: boolean; error?: string };
+    const r = data as { success: boolean; error?: string; created_count?: number };
     if (!r.success) { setError(r.error || 'Failed'); return; }
     setShowCreate(false);
-    setForm({ code: '', description: '', value: '', limit: '1', expires: '' });
-    fetchVouchers();
-  };
-
-  const toggleActive = async (v: Voucher) => {
-    await supabase.from('vouchers').update({ is_active: !v.is_active }).eq('id', v.id);
+    setForm({ codePrefix: '', description: '', value: '', quantity: '10', limit: '1', expires: '' });
+    setSuccessMsg(t('adminVouchers.createdCount', { count: r.created_count || 0 }));
     fetchVouchers();
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const getStatusStyle = (status: string) => {
+    if (status === 'sold') return { bg: Colors.neutral[100], text: Colors.neutral[500], label: t('adminVouchers.sold') };
+    return { bg: Colors.success[50], text: Colors.success[700], label: t('adminVouchers.available') };
+  };
 
   return (
     <View style={styles.container}>
@@ -64,10 +68,20 @@ export default function AdminVouchersScreen() {
           <ArrowLeft size={22} color={Colors.neutral[0]} strokeWidth={2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('adminVouchers.title')}</Text>
-        <TouchableOpacity onPress={() => { setShowCreate(true); setError(null); }} style={styles.addBtn}>
+        <TouchableOpacity onPress={() => { setShowCreate(true); setError(null); setSuccessMsg(null); }} style={styles.addBtn}>
           <Plus size={22} color={Colors.neutral[0]} strokeWidth={2} />
         </TouchableOpacity>
       </View>
+
+      {successMsg && (
+        <View style={styles.successBanner}>
+          <Check size={16} color={Colors.success[700]} strokeWidth={2} />
+          <Text style={styles.successText}>{successMsg}</Text>
+          <TouchableOpacity onPress={() => setSuccessMsg(null)} style={styles.bannerClose}>
+            <X size={16} color={Colors.success[700]} strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         data={vouchers}
@@ -81,44 +95,48 @@ export default function AdminVouchersScreen() {
             <Text style={styles.emptyText}>{t('adminVouchers.none')}</Text>
           </View>
         )}
-        renderItem={({ item }) => (
-          <View style={styles.voucherCard}>
-            <LinearGradient colors={[Colors.accent[500], Colors.accent[700]]} style={styles.voucherLeft}>
-              <Sparkles size={18} color={Colors.neutral[0]} strokeWidth={2} />
-              <Text style={styles.voucherValue}>MC {Math.round(Number(item.value))}</Text>
-            </LinearGradient>
-            <View style={styles.voucherRight}>
-              <View style={styles.voucherTopRow}>
-                <Text style={styles.voucherCode}>{item.code}</Text>
-                <TouchableOpacity
-                  style={[styles.toggle, item.is_active ? styles.toggleActive : styles.toggleInactive]}
-                  onPress={() => toggleActive(item)}
-                >
-                  <Text style={[styles.toggleText, item.is_active ? styles.toggleTextActive : styles.toggleTextInactive]}>
-                    {item.is_active ? t('adminVouchers.active') : t('adminVouchers.inactive')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.voucherDesc}>{item.description}</Text>
-              <View style={styles.voucherMeta}>
-                <Text style={styles.metaText}>{t('adminVouchers.limit', { limit: item.redemption_limit })}</Text>
-                {item.expires_at && (
-                  <View style={styles.metaItem}>
-                    <Calendar size={12} color={Colors.neutral[400]} strokeWidth={2} />
-                    <Text style={styles.metaText}>{formatDate(item.expires_at)}</Text>
+        renderItem={({ item }) => {
+          const st = getStatusStyle(item.status);
+          return (
+            <View style={styles.voucherCard}>
+              <LinearGradient
+                colors={item.status === 'sold' ? [Colors.neutral[400], Colors.neutral[600]] : [Colors.accent[500], Colors.accent[700]]}
+                style={styles.voucherLeft}
+              >
+                {item.status === 'sold' ? <Package size={18} color={Colors.neutral[0]} strokeWidth={2} /> : <Sparkles size={18} color={Colors.neutral[0]} strokeWidth={2} />}
+                <Text style={styles.voucherValue}>MC {Math.round(Number(item.value))}</Text>
+              </LinearGradient>
+              <View style={styles.voucherRight}>
+                <View style={styles.voucherTopRow}>
+                  <Text style={styles.voucherCode}>{item.code}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: st.bg }]}>
+                    <Text style={[styles.statusBadgeText, { color: st.text }]}>{st.label}</Text>
                   </View>
-                )}
+                </View>
+                <Text style={styles.voucherDesc}>{item.description}</Text>
+                <View style={styles.voucherMeta}>
+                  <Text style={styles.metaText}>{t('adminVouchers.limit', { limit: item.redemption_limit })}</Text>
+                  {item.expires_at && (
+                    <View style={styles.metaItem}>
+                      <Calendar size={12} color={Colors.neutral[400]} strokeWidth={2} />
+                      <Text style={styles.metaText}>{formatDate(item.expires_at)}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
-          </View>
-        )}
+          );
+        }}
       />
 
       <Modal visible={showCreate} transparent animationType="fade" onRequestClose={() => setShowCreate(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('adminVouchers.create')}</Text>
+              <View>
+                <Text style={styles.modalTitle}>{t('adminVouchers.bulkCreate')}</Text>
+                <Text style={styles.modalSubtitle}>{t('adminVouchers.bulkCreateDesc')}</Text>
+              </View>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
                 <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
               </TouchableOpacity>
@@ -126,11 +144,15 @@ export default function AdminVouchersScreen() {
 
             {error && <View style={styles.errorBanner}><Text style={styles.errorText}>{error}</Text></View>}
 
-            <FieldInput label={t('adminVouchers.code')} value={form.code} onChange={(v) => setForm({ ...form, code: v })} placeholder={t('adminVouchers.codePlaceholder')} autoCapitalize="characters" />
-            <FieldInput label={t('adminVouchers.description')} value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder={t('adminVouchers.descPlaceholder')} />
-            <FieldInput label={t('adminVouchers.value')} value={form.value} onChange={(v) => setForm({ ...form, value: v })} placeholder={t('adminVouchers.valuePlaceholder')} keyboardType="numeric" />
-            <FieldInput label={t('adminVouchers.redemptionLimit')} value={form.limit} onChange={(v) => setForm({ ...form, limit: v })} placeholder={t('adminVouchers.limitPlaceholder')} keyboardType="numeric" />
-            <FieldInput label={t('adminVouchers.expiry')} value={form.expires} onChange={(v) => setForm({ ...form, expires: v })} placeholder={t('adminVouchers.expiryPlaceholder')} />
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <FieldInput label={t('adminVouchers.code')} value={form.codePrefix} onChange={(v) => setForm({ ...form, codePrefix: v })} placeholder={t('adminVouchers.codePlaceholder')} autoCapitalize="characters" />
+              <FieldInput label={t('adminVouchers.description')} value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder={t('adminVouchers.descPlaceholder')} />
+              <FieldInput label={t('adminVouchers.value')} value={form.value} onChange={(v) => setForm({ ...form, value: v })} placeholder={t('adminVouchers.valuePlaceholder')} keyboardType="numeric" />
+              <FieldInput label={t('adminVouchers.quantity')} value={form.quantity} onChange={(v) => setForm({ ...form, quantity: v })} placeholder={t('adminVouchers.quantityPlaceholder')} keyboardType="numeric" />
+              <Text style={styles.fieldHint}>{t('adminVouchers.quantityDesc')}</Text>
+              <FieldInput label={t('adminVouchers.redemptionLimit')} value={form.limit} onChange={(v) => setForm({ ...form, limit: v })} placeholder={t('adminVouchers.limitPlaceholder')} keyboardType="numeric" />
+              <FieldInput label={t('adminVouchers.expiry')} value={form.expires} onChange={(v) => setForm({ ...form, expires: v })} placeholder={t('adminVouchers.expiryPlaceholder')} />
+            </ScrollView>
 
             <TouchableOpacity style={[styles.createBtn, creating && styles.createBtnDisabled]} onPress={handleCreate} disabled={creating} activeOpacity={0.85}>
               {creating ? <ActivityIndicator color={Colors.neutral[0]} /> : <Text style={styles.createBtnText}>{t('adminVouchers.createBtn')}</Text>}
@@ -171,6 +193,9 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: FontFamily.bold, fontSize: 20, color: Colors.neutral[0] },
   addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  successBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.success[50], paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.success[200] },
+  successText: { flex: 1, fontFamily: FontFamily.semibold, fontSize: 13, color: Colors.success[700] },
+  bannerClose: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl, gap: Spacing.sm },
   emptyText: { fontFamily: FontFamily.regular, fontSize: 14, color: Colors.neutral[400] },
   voucherCard: { flexDirection: 'row', backgroundColor: Colors.neutral[0], borderRadius: BorderRadius.lg, overflow: 'hidden', ...Shadows.sm },
@@ -179,24 +204,22 @@ const styles = StyleSheet.create({
   voucherRight: { flex: 1, padding: Spacing.md },
   voucherTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   voucherCode: { fontFamily: FontFamily.bold, fontSize: 16, color: Colors.neutral[900] },
-  toggle: { borderRadius: BorderRadius.full, paddingHorizontal: 10, paddingVertical: 4 },
-  toggleActive: { backgroundColor: Colors.success[50] },
-  toggleInactive: { backgroundColor: Colors.neutral[100] },
-  toggleText: { fontFamily: FontFamily.semibold, fontSize: 11 },
-  toggleTextActive: { color: Colors.success[700] },
-  toggleTextInactive: { color: Colors.neutral[500] },
+  statusBadge: { borderRadius: BorderRadius.full, paddingHorizontal: 10, paddingVertical: 4 },
+  statusBadgeText: { fontFamily: FontFamily.semibold, fontSize: 11 },
   voucherDesc: { fontFamily: FontFamily.regular, fontSize: 13, color: Colors.neutral[500], marginBottom: Spacing.sm },
   voucherMeta: { flexDirection: 'row', gap: Spacing.md, alignItems: 'center' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontFamily: FontFamily.regular, fontSize: 12, color: Colors.neutral[400] },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
   modalContent: { backgroundColor: Colors.neutral[0], borderRadius: BorderRadius.xl, padding: Spacing.lg, width: '100%', maxWidth: 440, maxHeight: '90%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.lg },
   modalTitle: { fontFamily: FontFamily.bold, fontSize: 20, color: Colors.neutral[900] },
+  modalSubtitle: { fontFamily: FontFamily.regular, fontSize: 13, color: Colors.neutral[500], marginTop: 4 },
   errorBanner: { backgroundColor: Colors.error[50], borderWidth: 1, borderColor: Colors.error[200], borderRadius: BorderRadius.md, padding: 12, marginBottom: Spacing.md },
   errorText: { fontFamily: FontFamily.regular, fontSize: 13, color: Colors.error[700] },
   fieldLabel: { fontFamily: FontFamily.medium, fontSize: 13, color: Colors.neutral[700], marginBottom: 6 },
   fieldInput: { borderWidth: 1.5, borderColor: Colors.neutral[200], borderRadius: BorderRadius.md, paddingHorizontal: 14, height: 48, fontFamily: FontFamily.regular, fontSize: 15, color: Colors.neutral[900] },
+  fieldHint: { fontFamily: FontFamily.regular, fontSize: 12, color: Colors.neutral[400], marginTop: -Spacing.xs, marginBottom: Spacing.md, paddingHorizontal: 2 },
   createBtn: { backgroundColor: Colors.primary[700], borderRadius: BorderRadius.md, height: 52, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.sm, ...Shadows.md },
   createBtnDisabled: { opacity: 0.5 },
   createBtnText: { fontFamily: FontFamily.semibold, fontSize: 16, color: Colors.neutral[0] },

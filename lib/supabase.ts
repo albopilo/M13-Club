@@ -102,6 +102,10 @@ export interface Voucher {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  status: 'available' | 'sold';
+  sold_by: string | null;
+  sold_at: string | null;
+  revealed_at: string | null;
 }
 
 export interface VoucherRedemption {
