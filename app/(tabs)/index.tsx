@@ -80,7 +80,7 @@ export default function HomeScreen() {
     const prefix = getTablePrefix(selectedBranch.name);
     if (!prefix) return;
     const tableParam = `${prefix} - ${roomNumber.trim()}`;
-    const url = `https://13ecafe.netlify.app/?table=${encodeURIComponent(tableParam)}`;
+    const url = `https://13e-menu.netlify.app/?table=${encodeURIComponent(tableParam)}`;
     Linking.openURL(url);
     closeFoodModal();
   }, [selectedBranch, roomNumber, closeFoodModal]);
