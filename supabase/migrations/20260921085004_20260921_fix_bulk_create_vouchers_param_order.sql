@@ -1,23 +1,17 @@
-/*
-# Bulk Create Vouchers RPC
+-- Drop and recreate admin_bulk_create_vouchers with parameters in
+-- alphabetical order so PostgREST's schema cache can resolve it.
+-- The previous definition had params in a non-alphabetical order
+-- (p_value before p_expires_at), which caused:
+-- "Could not find the function public.admin_bulk_create_vouchers(...) in the schema cache"
 
-## Overview
-Adds an admin RPC function to bulk-create multiple voucher codes at once
-for the sales page. Each generated voucher gets a unique code by appending
-a sequential number to the provided prefix.
-
-## New RPC Functions
-1. `admin_bulk_create_vouchers(p_code_prefix text, p_description text, p_value numeric, p_quantity int, p_redemption_limit int, p_expires_at timestamptz)`
-   - Validates: caller is admin, value > 0, quantity > 0, limit > 0, prefix is non-empty
-   - Generates `p_quantity` voucher codes by appending -001, -002, etc. to the prefix
-   - Each code is unique (checks for collisions)
-   - Creates audit log entry summarizing the bulk creation
-   - Returns: success with count of created vouchers
-
-## Security
-- SECURITY DEFINER function, only callable by admin roles (is_admin check)
-- GRANT EXECUTE TO authenticated
-*/
+DROP FUNCTION IF EXISTS admin_bulk_create_vouchers(
+  p_code_prefix text,
+  p_description text,
+  p_value numeric,
+  p_quantity int,
+  p_redemption_limit int,
+  p_expires_at timestamptz
+);
 
 CREATE OR REPLACE FUNCTION admin_bulk_create_vouchers(
   p_code_prefix text,
@@ -68,7 +62,6 @@ BEGIN
     v_suffix := lpad(v_i::text, 3, '0');
     v_code := UPPER(TRIM(p_code_prefix)) || '-' || v_suffix;
 
-    -- Check if code already exists, skip if so
     SELECT COUNT(*) INTO v_existing_count FROM vouchers WHERE code = v_code;
     IF v_existing_count > 0 THEN
       CONTINUE;
@@ -104,4 +97,14 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION admin_bulk_create_vouchers(text, text, timestamptz, int, int, numeric) TO authenticated;
+GRANT EXECUTE ON FUNCTION admin_bulk_create_vouchers(
+  text,
+  text,
+  timestamptz,
+  int,
+  int,
+  numeric
+) TO authenticated;
+
+-- Notify PostgREST to refresh its schema cache
+NOTIFY pgrst, 'reload schema';
