@@ -46,16 +46,20 @@ export default function SalesScreen() {
     if (error) {
       console.log(error);
     } else {
-      const parsed = data as VoucherCategory[];
-      setCategories(parsed || []);
-      // If the selected category is no longer available, clear it
-      if (selectedCategory) {
-        const updated = (parsed || []).find((c) => c.value === selectedCategory.value);
-        if (!updated) {
-          setSelectedCategory(null);
-        } else {
-          setSelectedCategory(updated);
+      const parsed = data as VoucherCategory[] | { success: boolean; error?: string };
+      if (Array.isArray(parsed)) {
+        setCategories(parsed);
+        if (selectedCategory) {
+          const updated = parsed.find((c) => c.value === selectedCategory.value);
+          if (!updated) {
+            setSelectedCategory(null);
+          } else {
+            setSelectedCategory(updated);
+          }
         }
+      } else {
+        setCategories([]);
+        setSelectedCategory(null);
       }
     }
 

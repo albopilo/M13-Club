@@ -88,7 +88,7 @@ export default function AdminBranchesScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/admin')} style={styles.backBtn}>
           <ArrowLeft size={22} color={Colors.neutral[700]} strokeWidth={2} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
