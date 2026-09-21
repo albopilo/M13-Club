@@ -3,17 +3,21 @@ import {
   View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, Modal, ActivityIndicator, FlatList,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowLeft, Plus, Ticket, X, Check, Calendar, Sparkles, Package } from 'lucide-react-native';
-import { supabase, Voucher } from '@/lib/supabase';
+import { ArrowLeft, Plus, Ticket, X, Check, Calendar, Sparkles, Package, Trash2, AlertTriangle } from 'lucide-react-native';
+import { supabase, Voucher, isSuperAdminRole } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { Colors, FontFamily, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { useLanguage } from '@/context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function AdminVouchersScreen() {
   const { t } = useLanguage();
+  const { member: currentMember } = useAuth();
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [voucherToDelete, setVoucherToDelete] = useState<Voucher | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ codePrefix: '', description: '', value: '', quantity: '10', limit: '1', expires: '' });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +31,20 @@ export default function AdminVouchersScreen() {
   useFocusEffect(useCallback(() => { fetchVouchers(); }, [fetchVouchers]));
 
   const onRefresh = async () => { setRefreshing(true); await fetchVouchers(); setRefreshing(false); };
+
+  const handleDelete = async () => {
+    if (!voucherToDelete) return;
+    setDeleting(true);
+    const { error: delError } = await supabase.from('vouchers').delete().eq('id', voucherToDelete.id);
+    setDeleting(false);
+    if (delError) {
+      setError(delError.message);
+      return;
+    }
+    setVoucherToDelete(null);
+    setSuccessMsg(t('adminVouchers.deleteSuccess'));
+    fetchVouchers();
+  };
 
   const handleCreate = async () => {
     if (!form.codePrefix.trim() || !form.description.trim() || !form.value) {
@@ -158,12 +176,69 @@ export default function AdminVouchersScreen() {
                       <Text style={styles.metaText}>{formatDate(item.expires_at)}</Text>
                     </View>
                   )}
+                  {isSuperAdminRole(currentMember?.role) && display !== 'sold' && (
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => { setVoucherToDelete(item); setError(null); }}
+                      activeOpacity={0.7}
+                    >
+                      <Trash2 size={14} color={Colors.error[600]} strokeWidth={2} />
+                      <Text style={styles.deleteBtnText}>{t('adminVouchers.deleteBtn')}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </View>
           );
         }}
       />
+
+      <Modal visible={!!voucherToDelete} transparent animationType="fade" onRequestClose={() => { if (!deleting) setVoucherToDelete(null); }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.deleteModalHeader}>
+              <View style={styles.deleteIconWrap}>
+                <AlertTriangle size={24} color={Colors.error[600]} strokeWidth={2} />
+              </View>
+              <Text style={styles.modalTitle}>{t('adminVouchers.delete')}</Text>
+              <TouchableOpacity onPress={() => { if (!deleting) setVoucherToDelete(null); }}>
+                <X size={24} color={Colors.neutral[500]} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+
+            {error && <View style={styles.errorBanner}><Text style={styles.errorText}>{error}</Text></View>}
+
+            {voucherToDelete && (
+              <View style={styles.deleteVoucherInfo}>
+                <Text style={styles.deleteVoucherCode}>{voucherToDelete.code}</Text>
+                <Text style={styles.deleteVoucherDesc}>{voucherToDelete.description}</Text>
+                <Text style={styles.deleteVoucherValue}>MC {Math.round(Number(voucherToDelete.value))}</Text>
+              </View>
+            )}
+
+            <Text style={styles.deleteConfirmText}>{t('adminVouchers.deleteConfirm')}</Text>
+
+            <View style={styles.deleteModalButtons}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, deleting && styles.createBtnDisabled]}
+                onPress={() => { if (!deleting) setVoucherToDelete(null); }}
+                disabled={deleting}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.cancelBtnText}>{t('sales.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteConfirmBtn, deleting && styles.createBtnDisabled]}
+                onPress={handleDelete}
+                disabled={deleting}
+                activeOpacity={0.85}
+              >
+                {deleting ? <ActivityIndicator color={Colors.neutral[0]} /> : <Text style={styles.deleteConfirmBtnText}>{t('adminVouchers.deleteBtn')}</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={showCreate} transparent animationType="fade" onRequestClose={() => setShowCreate(false)}>
         <View style={styles.modalOverlay}>
@@ -259,4 +334,18 @@ const styles = StyleSheet.create({
   createBtn: { backgroundColor: Colors.primary[700], borderRadius: BorderRadius.md, height: 52, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.sm, ...Shadows.md },
   createBtnDisabled: { opacity: 0.5 },
   createBtnText: { fontFamily: FontFamily.semibold, fontSize: 16, color: Colors.neutral[0] },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: BorderRadius.sm, backgroundColor: Colors.error[50] },
+  deleteBtnText: { fontFamily: FontFamily.semibold, fontSize: 11, color: Colors.error[600] },
+  deleteModalHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, justifyContent: 'space-between', marginBottom: Spacing.lg },
+  deleteIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.error[50], alignItems: 'center', justifyContent: 'center' },
+  deleteVoucherInfo: { backgroundColor: Colors.neutral[50], borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.md },
+  deleteVoucherCode: { fontFamily: FontFamily.bold, fontSize: 16, color: Colors.neutral[900], marginBottom: 2 },
+  deleteVoucherDesc: { fontFamily: FontFamily.regular, fontSize: 13, color: Colors.neutral[500], marginBottom: 4 },
+  deleteVoucherValue: { fontFamily: FontFamily.semibold, fontSize: 15, color: Colors.neutral[700] },
+  deleteConfirmText: { fontFamily: FontFamily.regular, fontSize: 14, color: Colors.neutral[600], lineHeight: 20, marginBottom: Spacing.lg },
+  deleteModalButtons: { flexDirection: 'row', gap: Spacing.sm },
+  cancelBtn: { flex: 1, borderWidth: 1.5, borderColor: Colors.neutral[200], borderRadius: BorderRadius.md, height: 48, alignItems: 'center', justifyContent: 'center' },
+  cancelBtnText: { fontFamily: FontFamily.semibold, fontSize: 15, color: Colors.neutral[600] },
+  deleteConfirmBtn: { flex: 1, backgroundColor: Colors.error[600], borderRadius: BorderRadius.md, height: 48, alignItems: 'center', justifyContent: 'center' },
+  deleteConfirmBtnText: { fontFamily: FontFamily.semibold, fontSize: 15, color: Colors.neutral[0] },
 });
