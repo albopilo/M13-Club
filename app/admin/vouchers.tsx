@@ -75,9 +75,24 @@ export default function AdminVouchersScreen() {
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const getStatusStyle = (status: string) => {
-    if (status === 'sold') return { bg: Colors.neutral[100], text: Colors.neutral[500], label: t('adminVouchers.sold') };
-    return { bg: Colors.success[50], text: Colors.success[700], label: t('adminVouchers.available') };
+  const getVoucherDisplayStatus = (item: Voucher) => {
+    if (item.status === 'sold') return 'sold';
+    if (!item.is_active) return 'inactive';
+    if (item.expires_at && new Date(item.expires_at) <= new Date()) return 'expired';
+    return 'available';
+  };
+
+  const getStatusStyle = (display: string) => {
+    switch (display) {
+      case 'sold':
+        return { bg: Colors.neutral[100], text: Colors.neutral[500], label: t('adminVouchers.sold') };
+      case 'expired':
+        return { bg: Colors.warning[50], text: Colors.warning[700], label: t('adminVouchers.expired') };
+      case 'inactive':
+        return { bg: Colors.neutral[100], text: Colors.neutral[500], label: t('adminVouchers.inactive') };
+      default:
+        return { bg: Colors.success[50], text: Colors.success[700], label: t('adminVouchers.available') };
+    }
   };
 
   return (
@@ -115,14 +130,16 @@ export default function AdminVouchersScreen() {
           </View>
         )}
         renderItem={({ item }) => {
-          const st = getStatusStyle(item.status);
+          const display = getVoucherDisplayStatus(item);
+          const st = getStatusStyle(display);
+          const isAvailable = display === 'available';
           return (
             <View style={styles.voucherCard}>
               <LinearGradient
-                colors={item.status === 'sold' ? [Colors.neutral[400], Colors.neutral[600]] : [Colors.accent[500], Colors.accent[700]]}
+                colors={isAvailable ? [Colors.accent[500], Colors.accent[700]] : [Colors.neutral[400], Colors.neutral[600]]}
                 style={styles.voucherLeft}
               >
-                {item.status === 'sold' ? <Package size={18} color={Colors.neutral[0]} strokeWidth={2} /> : <Sparkles size={18} color={Colors.neutral[0]} strokeWidth={2} />}
+                {isAvailable ? <Sparkles size={18} color={Colors.neutral[0]} strokeWidth={2} /> : <Package size={18} color={Colors.neutral[0]} strokeWidth={2} />}
                 <Text style={styles.voucherValue}>MC {Math.round(Number(item.value))}</Text>
               </LinearGradient>
               <View style={styles.voucherRight}>
