@@ -33,25 +33,44 @@ export default function AdminVouchersScreen() {
       setError(t('adminVouchers.errorFields'));
       return;
     }
+    const numericValue = parseFloat(form.value);
+    if (isNaN(numericValue) || numericValue <= 0) {
+      setError(t('adminVouchers.errorInvalidValue'));
+      return;
+    }
+    let expiresAt: string | null = null;
+    if (form.expires.trim()) {
+      const parsed = new Date(form.expires.trim());
+      if (isNaN(parsed.getTime())) {
+        setError(t('adminVouchers.errorInvalidDate'));
+        return;
+      }
+      expiresAt = parsed.toISOString();
+    }
     setCreating(true);
     setError(null);
     setSuccessMsg(null);
-    const { data, error: rpcError } = await supabase.rpc('admin_bulk_create_vouchers', {
-      p_code_prefix: form.codePrefix.trim().toUpperCase(),
-      p_description: form.description.trim(),
-      p_value: parseFloat(form.value),
-      p_quantity: parseInt(form.quantity) || 1,
-      p_redemption_limit: parseInt(form.limit) || 1,
-      p_expires_at: form.expires ? new Date(form.expires).toISOString() : null,
-    });
-    setCreating(false);
-    if (rpcError) { setError(rpcError.message); return; }
-    const r = data as { success: boolean; error?: string; created_count?: number };
-    if (!r.success) { setError(r.error || 'Failed'); return; }
-    setShowCreate(false);
-    setForm({ codePrefix: '', description: '', value: '', quantity: '10', limit: '1', expires: '' });
-    setSuccessMsg(t('adminVouchers.createdCount', { count: r.created_count || 0 }));
-    fetchVouchers();
+    try {
+      const { data, error: rpcError } = await supabase.rpc('admin_bulk_create_vouchers', {
+        p_code_prefix: form.codePrefix.trim().toUpperCase(),
+        p_description: form.description.trim(),
+        p_value: numericValue,
+        p_quantity: parseInt(form.quantity) || 1,
+        p_redemption_limit: parseInt(form.limit) || 1,
+        p_expires_at: expiresAt,
+      });
+      if (rpcError) { setError(rpcError.message); return; }
+      const r = data as { success: boolean; error?: string; created_count?: number };
+      if (!r.success) { setError(r.error || 'Failed'); return; }
+      setShowCreate(false);
+      setForm({ codePrefix: '', description: '', value: '', quantity: '10', limit: '1', expires: '' });
+      setSuccessMsg(t('adminVouchers.createdCount', { count: r.created_count || 0 }));
+      fetchVouchers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('adminVouchers.errorUnexpected'));
+    } finally {
+      setCreating(false);
+    }
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' });
