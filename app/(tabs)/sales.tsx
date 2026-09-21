@@ -31,6 +31,7 @@ export default function SalesScreen() {
   const [categories, setCategories] = useState<VoucherCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<VoucherCategory | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -44,10 +45,13 @@ export default function SalesScreen() {
     const { data, error } = await supabase.rpc("get_voucher_categories");
 
     if (error) {
-      console.log(error);
+      setLoadError(error.message);
+      setCategories([]);
+      setSelectedCategory(null);
     } else {
       const parsed = data as VoucherCategory[] | { success: boolean; error?: string };
       if (Array.isArray(parsed)) {
+        setLoadError(null);
         setCategories(parsed);
         if (selectedCategory) {
           const updated = parsed.find((c) => c.value === selectedCategory.value);
@@ -58,6 +62,8 @@ export default function SalesScreen() {
           }
         }
       } else {
+        const errObj = parsed as { success: boolean; error?: string };
+        setLoadError(errObj.error || "Unable to load vouchers");
         setCategories([]);
         setSelectedCategory(null);
       }
@@ -250,11 +256,30 @@ export default function SalesScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
-              <Text style={styles.emptyIconText}>✓</Text>
-            </View>
-            <Text style={styles.emptyTitle}>{t("sales.noVouchers")}</Text>
-            <Text style={styles.emptyText}>{t("sales.noVouchersDesc")}</Text>
+            {loadError ? (
+              <>
+                <View style={[styles.emptyIcon, { backgroundColor: "#FEF3F2" }]}>
+                  <Text style={[styles.emptyIconText, { color: "#D92D20" }]}>!</Text>
+                </View>
+                <Text style={styles.emptyTitle}>{t("sales.loadError")}</Text>
+                <Text style={styles.emptyText}>{loadError}</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  activeOpacity={0.8}
+                  onPress={loadCategories}
+                >
+                  <Text style={styles.retryText}>{t("sales.retry")}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <View style={styles.emptyIcon}>
+                  <Text style={styles.emptyIconText}>✓</Text>
+                </View>
+                <Text style={styles.emptyTitle}>{t("sales.noVouchers")}</Text>
+                <Text style={styles.emptyText}>{t("sales.noVouchersDesc")}</Text>
+              </>
+            )}
           </View>
         }
       />
@@ -696,6 +721,18 @@ const styles = StyleSheet.create({
     color: "#667085",
     textAlign: "center",
     lineHeight: 21,
+  },
+  retryButton: {
+    marginTop: 16,
+    backgroundColor: "#0A6EFF",
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+  },
+  retryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
   },
 
   modalOverlay: {

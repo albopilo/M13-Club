@@ -172,6 +172,8 @@ const en: Dict = {
   'sales.title': 'Sell Voucher',
   'sales.subtitle': 'Select a category and reveal a random voucher code',
   'sales.noCategorySelected': 'Please select a voucher category first',
+  'sales.loadError': 'Unable to Load Vouchers',
+  'sales.retry': 'Retry',
 
   // ── Payment Logs ──
   'logs.title': 'Payment Logs',
@@ -355,7 +357,7 @@ const en: Dict = {
   'adminVouchers.errorUnexpected': 'An unexpected error occurred. Please try again.',
   'adminVouchers.quantity': 'Quantity',
   'adminVouchers.quantityPlaceholder': '10',
-  'adminVouchers.quantityDesc': 'Number of voucher codes to generate',
+  'adminVouchers.quantityDesc': 'Number of random voucher codes to generate (codes are unguessable)',
   'adminVouchers.bulkCreate': 'Bulk Create Vouchers',
   'adminVouchers.bulkCreateDesc': 'Generate multiple voucher codes at once for the sales page',
   'adminVouchers.createdCount': '{count} vouchers created successfully',
@@ -557,6 +559,8 @@ const id: Dict = {
   'sales.title': 'Jual Voucher',
   'sales.subtitle': 'Pilih kategori dan tampilkan kode voucher acak',
   'sales.noCategorySelected': 'Mohon pilih kategori voucher terlebih dahulu',
+  'sales.loadError': 'Tidak Dapat Memuat Voucher',
+  'sales.retry': 'Coba Lagi',
 
   // ── Payment Logs ──
   'logs.title': 'Log Pembayaran',
@@ -740,7 +744,7 @@ const id: Dict = {
   'adminVouchers.errorUnexpected': 'Terjadi kesalahan tak terduga. Mohon coba lagi.',
   'adminVouchers.quantity': 'Jumlah',
   'adminVouchers.quantityPlaceholder': '10',
-  'adminVouchers.quantityDesc': 'Jumlah kode voucher yang akan dibuat',
+  'adminVouchers.quantityDesc': 'Jumlah kode voucher acak yang akan dibuat (kode tidak dapat ditebak)',
   'adminVouchers.bulkCreate': 'Buat Voucher Massal',
   'adminVouchers.bulkCreateDesc': 'Buat beberapa kode voucher sekaligus untuk halaman penjualan',
   'adminVouchers.createdCount': '{count} voucher berhasil dibuat',
