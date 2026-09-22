@@ -75,6 +75,9 @@ export default function Document({ children }: PropsWithChildren) {
             #root > div > *:not([data-print="flyer-wrap"]) {
               display: none !important;
             }
+            [data-print="hide"] {
+              display: none !important;
+            }
             [data-print="flyer-wrap"] {
               max-width: 100% !important;
               width: 100% !important;
