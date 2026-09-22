@@ -68,6 +68,33 @@ export default function Document({ children }: PropsWithChildren) {
       <body>
         <ScrollViewStyleReset />
         <div id="root">{children}</div>
+        <style>{`
+          @media print {
+            body { background: #fff !important; }
+            /* Hide everything except the flyer */
+            #root > div > *:not([data-print="flyer-wrap"]) {
+              display: none !important;
+            }
+            [data-print="flyer-wrap"] {
+              max-width: 100% !important;
+              width: 100% !important;
+              border-radius: 0 !important;
+              box-shadow: none !important;
+              overflow: visible !important;
+            }
+            [data-print="flyer"] {
+              min-height: auto !important;
+              padding: 32px !important;
+              border-radius: 0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            @page {
+              size: A4 portrait;
+              margin: 0;
+            }
+          }
+        `}</style>
       </body>
     </html>
   );

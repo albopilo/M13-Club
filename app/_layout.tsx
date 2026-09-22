@@ -134,6 +134,14 @@ export default function RootLayout() {
         />
 
         <Stack.Screen
+          name="promo"
+          options={{
+            headerShown:
+              false,
+          }}
+        />
+
+        <Stack.Screen
           name="+not-found"
         />
       </Stack>
